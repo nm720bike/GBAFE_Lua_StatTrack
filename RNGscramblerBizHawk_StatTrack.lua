@@ -1,26 +1,35 @@
 math.randomseed(os.time())
-RNGBase = 0x03000000
-lastSeenRNG = {memory.read_u16_le(RNGBase+4), memory.read_u16_le(RNGBase+2), memory.read_u16_le(RNGBase)}
-numDisplayedRNs = 20
-superRNToRNConversionDivisor = 655.36
-gameID = ""
+local RNGBase = 0x03000000
+local lastSeenRNG = {memory.read_u16_le(RNGBase+4), memory.read_u16_le(RNGBase+2), memory.read_u16_le(RNGBase)}
+local numDisplayedRNs = 20
+local superRNToRNConversionDivisor = 655.36
+local gameID = ""
 gui.use_surface("emucore")
 -- local myCanvas = gui.createcanvas(200, 200)
 --     client.SetGameExtraPadding(int left, int top, int right, int bottom) 
 
 local bufferwidth = client.bufferwidth()
 local bufferheight = client.bufferheight()
-RNGPosition = 0
-lastRNGPosition = 0
-userInput = input.get()
-displayRNG = false
+local num_displayed_units = 3
+local last_num_displayed = 1
+local baseFontSize = 3
+local width = 110
+
+local drawString = gui.drawString
+local drawLine = gui.drawLine
+local drawBox = gui.drawBox
+local transformPoint = client.transformPoint
+local RNGPosition = 0
+local lastRNGPosition = 0
+local userInput = input.get()
+local displayRNG = false
 
 -- Read consecutive values from the ROM to find a special string (ex/ FIREEMBLEM6.AFEJ01) used to distinguish between games
 for i = 0, 18, 1 do
 	gameID = gameID..memory.readbyte(0x080000A0 + i)
 end
 
-gameIDMap = {
+local gameIDMap = {
 	['70738269697766766977540657069744849150'] = "Sealed Sword J",
 	['70738269697766766977690656955694849150'] = "Blazing Sword U",
 	['70738269697766766977550656955744849150'] = "Blazing Sword J",
@@ -28,7 +37,7 @@ gameIDMap = {
 	['70738269697766766977560666956744849150'] = "Sacred Stones J"
 }
 
-phaseMap = {
+local phaseMap = {
 	['Sealed Sword J'] = 0x0202AA57,
 	['Blazing Sword U'] = 0x0202BC07,
 	['Blazing Sword J'] = 0x0202BC03,
@@ -38,7 +47,7 @@ phaseMap = {
 -- Unit info is displayed as [ID] = {name, b_lvl, b_hp, b_str, b_skl, b_spd, b_def, b_res, b_lck, c_lvl, c_hp, c_str, c_skl, c_spd, c_def, c_res, c_lck, hp_g, str_g, skl_g, spd_g, def_g,  res_g, lck_g, pp_lvl, avg_hp, avg_str, avg_skl, avg_spd, avg_def, avg_res, avg_lck, total_lvls, promoted, ppp_lvl}
 --									[01,    02,    03,    04,    05,    06,    07,    08,    09,   10,    11,    12,    13,    14,    15,    16,    17,   18,    19,    20,   21,     22,    23,    24,    25,     26,      27,      28,      29,      30,       31,      32       33,         34,       35]
 -- b_* = base stat. c_* = current stat. *_g = growth. avg_* = amount +- avg
-UnitsLut = {
+local UnitsLut = {
 	['8803D64'] = {"Eirika",	01,	16,	04,	08,	09,	03,	01,	05, 0, 0, 0, 0, 0, 0, 0, 0, 0.70, 0.40, 0.60, 0.60,0.30, 0.30, 0.60, 01, "+0", "+0", "+0", "+0", "+0", "+0", "+0", 0, 0, 0},
 	['8803D98'] = {"Seth",		01,	30,	14,	13,	12,	11,	08,	13, 0, 0, 0, 0, 0, 0, 0, 0, 0.90, 0.50, 0.45, 0.45,0.40, 0.30, 0.25, 00, "+0", "+0", "+0", "+0", "+0", "+0", "+0", 0, 0, 0},
 	['8803E00'] = {"Franz",		01,	20,	07,	05,	07,	06,	01,	02, 0, 0, 0, 0, 0, 0, 0, 0, 0.80, 0.40, 0.40, 0.50,0.25, 0.20, 0.40, 01, "+0", "+0", "+0", "+0", "+0", "+0", "+0", 0, 0, 0},
@@ -78,7 +87,7 @@ UnitsLut = {
 
 -- print(UnitsLut['8803D64'])
 -- current units
-CurrentUnits = {'testtest', 'testtest', 'testtest'}
+local CurrentUnits = {'testtest', 'testtest', 'testtest'}
 
 heldDown = {
 	['R'] = false, 
@@ -173,236 +182,247 @@ function checkForUserInput()
 	end
 end
 
-ross_promo_added = 0
-amelia_promo_added = 0
-ewan_promo_added = 0
+local ross_promo_added = 0
+local amelia_promo_added = 0
+local ewan_promo_added = 0
+--current data of who we're working on
+local Cdata = {
+	['lookupKey'] = 0,
+	['lvl'] = 0,
+	['maxHP'] = 0,
+	['str'] = 0,
+	['skl'] = 0,
+	['spd'] = 0,
+	['def'] = 0,
+	['res'] = 0,
+	['lck'] = 0,
+	['lvls_gained'] = 0
+}
+local unit_arr = {}
+local addr = 0
 
 local baseAddress = 0x0202BE4C
-function updateLUT(i)
-	-- for i = 0,33,1 do
-		addr = baseAddress + (i*0x48)
-		Rom_unit = memory.read_u32_le(addr, "System Bus")
-		-- print(string.format("%x", Rom_unit))
-		lookupKey = string.format("%07X", Rom_unit)
-		if UnitsLut[lookupKey] == nil then
-			-- print("returning")
-			return
+function updateLUT(char_number, stage)
+
+end
+
+function updateLUT_stage1(char_number)
+	addr = baseAddress + (char_number*0x48)
+	local Rom_unit = memory.read_u32_le(addr, "System Bus")
+	Cdata['lookupKey'] = string.format("%07X", Rom_unit)
+	unit_arr = UnitsLut[Cdata['lookupKey']]
+end
+
+function updateLUT_stage2(char_number) 
+
+	local bytes = memory.read_bytes_as_array(addr + 0x8, 18, "System Bus")
+	lvl = bytes[1]
+	-- lvl    = memory.readbyte(addr + 0x8, "System Bus")
+	-- If we're not promoted and have gained a level, add it to pp_lvl
+	if unit_arr[34] == 0 and unit_arr[25] ~= 0 then
+		unit_arr[25] = lvl
+	end
+	if unit_arr[35] ~= 10 and unit_arr[35] ~= 0 then
+		unit_arr[35] = lvl
+	end
+	unit_arr[10] = lvl
+	Cdata['lvl'] = lvl
+	local maxHP = bytes[11]
+	Cdata['maxHP'] = maxHP
+	-- maxHP  = memory.readbyte(addr + 0x12, "System Bus")
+	unit_arr[11] = maxHP
+	local str = bytes[12]
+	Cdata['str'] = str
+	-- str    = memory.readbyte(addr + 0x14, "System Bus")
+	unit_arr[13] = str
+	local skl = bytes[13]
+	Cdata['skl'] = skl
+	-- skl    = memory.readbyte(addr + 0x15, "System Bus")
+	unit_arr[14] = skl
+	local spd = bytes[14]
+	Cdata['spd'] = spd
+	-- spd    = memory.readbyte(addr + 0x16, "System Bus")
+	unit_arr[15] = spd
+	local def = bytes[15]
+	Cdata['def'] = def
+	-- def    = memory.readbyte(addr + 0x17, "System Bus")
+	unit_arr[16] = def
+	local res = bytes[11]
+	Cdata['res'] = res
+	-- res    = memory.readbyte(addr + 0x18, "System Bus")
+	unit_arr[17] = res
+	local lck = bytes[12]
+	Cdata['lck'] = lck
+	-- lck    = memory.readbyte(addr + 0x19, "System Bus")
+	unit_arr[18] = lck
+end
+
+function updateLUT_stage3()
+	local promo_hp_gain = 0
+	local promo_str_gain = 0
+	local promo_skl_gain = 0
+	local promo_spd_gain = 0
+	local promo_def_gain = 0
+	local promo_res_gain = 0
+	-- if level < pp_lvl, then we're a (somewhat) freshly promoted unit
+	if (unit_arr[10] < unit_arr[25]) then
+		unit_arr[34] = 1
+	end	
+	-- print(rom_class)
+
+	if (unit_arr[35] ~= 0) then -- we're a trainee
+		if (Cdata['lookupKey'] == '8803E9C') then -- ross
+			if (ross_promo_added == 0 and lvl == 1 and unit_arr[35] == 10) then -- Ross just promoted, add growth to bases
+				rom_class = memory.read_u32_le(addr+0x4, "System Bus")
+				promo_gain_arr = memory.read_bytes_as_array(rom_class + 0x22, 6, "System Bus")
+				promo_hp_gain = promo_gain_arr[1]
+				promo_str_gain = promo_gain_arr[2]
+				promo_skl_gain = promo_gain_arr[3]
+				promo_spd_gain = promo_gain_arr[4]
+				promo_def_gain = promo_gain_arr[5]
+				promo_res_gain = promo_gain_arr[6]
+				unit_arr[3] = unit_arr[3] + promo_hp_gain
+				unit_arr[4] = unit_arr[4] + promo_str_gain
+				unit_arr[5] = unit_arr[5] + promo_skl_gain
+				unit_arr[6] = unit_arr[6] + promo_spd_gain
+				unit_arr[7] = unit_arr[7] + promo_def_gain
+				unit_arr[8] = unit_arr[8] + promo_res_gain
+				ross_promo_added = 1
+				unit_arr[25] = 1
+			end
+			if unit_arr[34] == 1 then -- we were promoted, so do lvl - 1 + pp_lvl - b_lvl + ppp_lvl - 1
+				Cdata['lvls_gained'] = unit_arr[10] - 1 + unit_arr[25] - unit_arr[2] + unit_arr[35] - 1
+			elseif (unit_arr[25] > 0) then --we're not promoted yet (still trainee class), so do lvl - b_lvl + ppp_lvl - 1
+				Cdata['lvls_gained'] = unit_arr[25] - unit_arr[2] + unit_arr[35] - 1
+			else
+				Cdata['lvls_gained'] = unit_arr[35] - unit_arr[2]
+			end
+		elseif (Cdata['lookupKey'] == '88040D8') then -- amelia
+			if (amelia_promo_added == 0 and lvl == 1 and unit_arr[35] == 10) then -- Amelia just promoted, add growth to bases
+				rom_class = memory.read_u32_le(addr+0x4, "System Bus")
+				promo_gain_arr = memory.read_bytes_as_array(rom_class + 0x22, 6, "System Bus")
+				promo_hp_gain = promo_gain_arr[1]
+				promo_str_gain = promo_gain_arr[2]
+				promo_skl_gain = promo_gain_arr[3]
+				promo_spd_gain = promo_gain_arr[4]
+				promo_def_gain = promo_gain_arr[5]
+				promo_res_gain = promo_gain_arr[6]
+				unit_arr[3] = unit_arr[3] + promo_hp_gain
+				unit_arr[4] = unit_arr[4] + promo_str_gain
+				unit_arr[5] = unit_arr[5] + promo_skl_gain
+				unit_arr[6] = unit_arr[6] + promo_spd_gain
+				unit_arr[7] = unit_arr[7] + promo_def_gain
+				unit_arr[8] = unit_arr[8] + promo_res_gain
+				amelia_promo_added = 1
+				unit_arr[25] = 1
+			end
+			if unit_arr[34] == 1 then -- we were promoted, so do lvl - 1 + pp_lvl - b_lvl + ppp_lvl - 1
+				Cdata['lvls_gained'] = unit_arr[10] - 1 + unit_arr[25] - unit_arr[2] + unit_arr[35] - 1
+			elseif (unit_arr[25] > 0) then --we're not promoted yet (still trainee class), so do lvl - b_lvl + ppp_lvl - 1
+				Cdata['lvls_gained'] = unit_arr[25] - unit_arr[2] + unit_arr[35] - 1
+			else
+				Cdata['lvls_gained'] = unit_arr[35] - unit_arr[2]
+			end
+		else -- Ewan
+			if (ewan_promo_added == 0 and lvl == 1 and unit_arr[35] == 10) then -- Ewan just promoted, add growth to bases
+				rom_class = memory.read_u32_le(addr+0x4, "System Bus")
+				promo_gain_arr = memory.read_bytes_as_array(rom_class + 0x22, 6, "System Bus")
+				promo_hp_gain = promo_gain_arr[1]
+				promo_str_gain = promo_gain_arr[2]
+				promo_skl_gain = promo_gain_arr[3]
+				promo_spd_gain = promo_gain_arr[4]
+				promo_def_gain = promo_gain_arr[5]
+				promo_res_gain = promo_gain_arr[6]
+				unit_arr[3] = unit_arr[3] + promo_hp_gain
+				unit_arr[4] = unit_arr[4] + promo_str_gain
+				unit_arr[5] = unit_arr[5] + promo_skl_gain
+				unit_arr[6] = unit_arr[6] + promo_spd_gain
+				unit_arr[7] = unit_arr[7] + promo_def_gain
+				unit_arr[8] = unit_arr[8] + promo_res_gain
+				ewan_promo_added = 1
+				unit_arr[25] = 1
+			end
+			if unit_arr[34] == 1 then -- we were promoted, so do lvl - 1 + pp_lvl - b_lvl + ppp_lvl - 1
+				Cdata['lvls_gained'] = unit_arr[10] - 1 + unit_arr[25] - unit_arr[2] + unit_arr[35] - 1
+			elseif (unit_arr[25] > 0) then --we're not promoted yet (still trainee class), so do lvl - b_lvl + ppp_lvl - 1
+				Cdata['lvls_gained'] = unit_arr[25] - unit_arr[2] + unit_arr[35] - 1
+			else
+					Cdata['lvls_gained'] = unit_arr[35] - unit_arr[2]
+			end
 		end
-		lvl    = memory.readbyte(addr + 0x8, "System Bus")
-		-- print(lvl)
-		-- If we're not promoted and have gained a level, add it to pp_lvl
-		if UnitsLut[lookupKey][34] == 0 and UnitsLut[lookupKey][25] ~= 0 then
-			UnitsLut[lookupKey][25] = lvl
-		end
-		if UnitsLut[lookupKey][35] ~= 10 and UnitsLut[lookupKey][35] ~= 0 then
-			UnitsLut[lookupKey][35] = lvl
-		end
-		UnitsLut[lookupKey][10] = lvl
-		maxHP  = memory.readbyte(addr + 0x12, "System Bus")
-		-- print(maxHP)
-		UnitsLut[lookupKey][11] = maxHP
-		str    = memory.readbyte(addr + 0x14, "System Bus")
-		UnitsLut[lookupKey][12] = str
-		-- print(str)
-		skl    = memory.readbyte(addr + 0x15, "System Bus")
-		UnitsLut[lookupKey][13] = skl
-		-- print(skl)
-		spd    = memory.readbyte(addr + 0x16, "System Bus")
-		UnitsLut[lookupKey][14] = spd
-		-- print(spd)
-		def    = memory.readbyte(addr + 0x17, "System Bus")
-		UnitsLut[lookupKey][15] = def
-		-- print(def)
-		res    = memory.readbyte(addr + 0x18, "System Bus")
-		UnitsLut[lookupKey][16] = res
-		-- print(res)
-		lck    = memory.readbyte(addr + 0x19, "System Bus")
-		UnitsLut[lookupKey][17] = lck
-		-- print(lck)
+	elseif (unit_arr[25] == 0) then -- if pp_lvl == 0 then we're a pre-premote. do lvl - base + trainee levels
+		Cdata['lvls_gained'] = unit_arr[10] - unit_arr[2]
+	elseif unit_arr[34] == 1 then -- we were promoted, so do lvl - 1 + pp_lvl - b_lvl
+		Cdata['lvls_gained'] = unit_arr[10] - 1 + unit_arr[25] - unit_arr[2]
 		
-		promo_hp_gain = 0
-		promo_str_gain = 0
-		promo_skl_gain = 0
-		promo_spd_gain = 0
-		promo_def_gain = 0
-		promo_res_gain = 0
-		-- if level < pp_lvl, then we're a (somewhat) freshly promoted unit
-		if (UnitsLut[lookupKey][10] < UnitsLut[lookupKey][25]) then
-			UnitsLut[lookupKey][34] = 1
-		end
+	else -- we're unpromoted
+		Cdata['lvls_gained'] = unit_arr[25] - unit_arr[2]
+	end
+	unit_arr[33] = Cdata['lvls_gained']
+end
 
-		
-		-- print(rom_class)
+function updateLUT_stage4()
+	local unit_arr = UnitsLut[Cdata['lookupKey']]
+	local promo_hp_gain = 0
+	local promo_str_gain = 0
+	local promo_skl_gain = 0
+	local promo_spd_gain = 0
+	local promo_def_gain = 0
+	local promo_res_gain = 0
+	if unit_arr[34] == 1 then 
+		rom_class = memory.read_u32_le(addr + 0x4, "System Bus")
+		promo_gain_arr = memory.read_bytes_as_array(rom_class + 0x22, 6, "System Bus")
+		promo_hp_gain = promo_gain_arr[1]
+		promo_str_gain = promo_gain_arr[2]
+		promo_skl_gain = promo_gain_arr[3]
+		promo_spd_gain = promo_gain_arr[4]
+		promo_def_gain = promo_gain_arr[5]
+		promo_res_gain = promo_gain_arr[6]
+	end
+	local avg_hp =  unit_arr[03] + math.floor(Cdata['lvls_gained'] * unit_arr[18] + 0.5) + promo_hp_gain
+	local avg_str = unit_arr[04] + math.floor(Cdata['lvls_gained'] * unit_arr[19] + 0.5) + promo_str_gain
+	local avg_skl = unit_arr[05] + math.floor(Cdata['lvls_gained'] * unit_arr[20] + 0.5) + promo_skl_gain
+	local avg_spd = unit_arr[06] + math.floor(Cdata['lvls_gained'] * unit_arr[21] + 0.5) + promo_spd_gain
+	local avg_def = unit_arr[07] + math.floor(Cdata['lvls_gained'] * unit_arr[22] + 0.5) + promo_def_gain
+	local avg_res = unit_arr[08] + math.floor(Cdata['lvls_gained'] * unit_arr[23] + 0.5) + promo_res_gain
+	local avg_lck = unit_arr[09] + math.floor(Cdata['lvls_gained'] * unit_arr[24] + 0.5)
+	unit_arr[26] = string.format("%+d", Cdata['maxHP']-avg_hp)
+	unit_arr[26] = string.format("%+d", Cdata['str']-avg_str)
+	unit_arr[26] = string.format("%+d", Cdata['skl']-avg_skl)
+	unit_arr[26] = string.format("%+d", Cdata['spd']-avg_spd)
+	unit_arr[26] = string.format("%+d", Cdata['def']-avg_def)
+	unit_arr[26] = string.format("%+d", Cdata['res']-avg_res)
+	unit_arr[26] = string.format("%+d", Cdata['lck']-avg_lck)
+end
 
-		if (UnitsLut[lookupKey][35] ~= 0) then -- we're a trainee
-			if (lookupKey == '8803E9C') then -- ross
-				if (ross_promo_added == 0 and lvl == 1 and UnitsLut[lookupKey][35] == 10) then -- Ross just promoted, add growth to bases
-					rom_class = memory.read_u32_le(addr+0x4, "System Bus")
-					promo_hp_gain = memory.readbyte(rom_class + 0x22, "System Bus")
-					promo_str_gain = memory.readbyte(rom_class + 0x23, "System Bus")
-					promo_skl_gain = memory.readbyte(rom_class + 0x24, "System Bus")
-					promo_spd_gain = memory.readbyte(rom_class + 0x25, "System Bus")
-					promo_def_gain = memory.readbyte(rom_class + 0x26, "System Bus")
-					promo_res_gain = memory.readbyte(rom_class + 0x27, "System Bus")
-					UnitsLut[lookupKey][3] = UnitsLut[lookupKey][3] + promo_hp_gain
-					UnitsLut[lookupKey][4] = UnitsLut[lookupKey][4] + promo_str_gain
-					UnitsLut[lookupKey][5] = UnitsLut[lookupKey][5] + promo_skl_gain
-					UnitsLut[lookupKey][6] = UnitsLut[lookupKey][6] + promo_spd_gain
-					UnitsLut[lookupKey][7] = UnitsLut[lookupKey][7] + promo_def_gain
-					UnitsLut[lookupKey][8] = UnitsLut[lookupKey][8] + promo_res_gain
-					ross_promo_added = 1
-					UnitsLut[lookupKey][25] = 1
-				end
-				if UnitsLut[lookupKey][34] == 1 then -- we were promoted, so do lvl - 1 + pp_lvl - b_lvl + ppp_lvl - 1
-					lvls_gained = UnitsLut[lookupKey][10] - 1 + UnitsLut[lookupKey][25] - UnitsLut[lookupKey][2] + UnitsLut[lookupKey][35] - 1
-				elseif (UnitsLut[lookupKey][25] > 0) then --we're not promoted yet (still trainee class), so do lvl - b_lvl + ppp_lvl - 1
-					lvls_gained = UnitsLut[lookupKey][25] - UnitsLut[lookupKey][2] + UnitsLut[lookupKey][35] - 1
-				else
-					 lvls_gained = UnitsLut[lookupKey][35] - UnitsLut[lookupKey][2]
-				end
-			elseif (lookupKey == '88040D8') then -- amelia
-				if (amelia_promo_added == 0 and lvl == 1 and UnitsLut[lookupKey][35] == 10) then -- Amelia just promoted, add growth to bases
-					rom_class = memory.read_u32_le(addr+0x4, "System Bus")
-					promo_hp_gain = memory.readbyte(rom_class + 0x22, "System Bus")
-					promo_str_gain = memory.readbyte(rom_class + 0x23, "System Bus")
-					promo_skl_gain = memory.readbyte(rom_class + 0x24, "System Bus")
-					promo_spd_gain = memory.readbyte(rom_class + 0x25, "System Bus")
-					promo_def_gain = memory.readbyte(rom_class + 0x26, "System Bus")
-					promo_res_gain = memory.readbyte(rom_class + 0x27, "System Bus")
-					UnitsLut[lookupKey][3] = UnitsLut[lookupKey][3] + promo_hp_gain
-					UnitsLut[lookupKey][4] = UnitsLut[lookupKey][4] + promo_str_gain
-					UnitsLut[lookupKey][5] = UnitsLut[lookupKey][5] + promo_skl_gain
-					UnitsLut[lookupKey][6] = UnitsLut[lookupKey][6] + promo_spd_gain
-					UnitsLut[lookupKey][7] = UnitsLut[lookupKey][7] + promo_def_gain
-					UnitsLut[lookupKey][8] = UnitsLut[lookupKey][8] + promo_res_gain
-					amelia_promo_added = 1
-					UnitsLut[lookupKey][25] = 1
-				end
-				if UnitsLut[lookupKey][34] == 1 then -- we were promoted, so do lvl - 1 + pp_lvl - b_lvl + ppp_lvl - 1
-					lvls_gained = UnitsLut[lookupKey][10] - 1 + UnitsLut[lookupKey][25] - UnitsLut[lookupKey][2] + UnitsLut[lookupKey][35] - 1
-				elseif (UnitsLut[lookupKey][25] > 0) then --we're not promoted yet (still trainee class), so do lvl - b_lvl + ppp_lvl - 1
-					lvls_gained = UnitsLut[lookupKey][25] - UnitsLut[lookupKey][2] + UnitsLut[lookupKey][35] - 1
-				else
-					 lvls_gained = UnitsLut[lookupKey][35] - UnitsLut[lookupKey][2]
-				end
-			else -- Ewan
-				if (ewan_promo_added == 0 and lvl == 1 and UnitsLut[lookupKey][35] == 10) then -- Ewan just promoted, add growth to bases
-					rom_class = memory.read_u32_le(addr+0x4, "System Bus")
-					promo_hp_gain = memory.readbyte(rom_class + 0x22, "System Bus")
-					promo_str_gain = memory.readbyte(rom_class + 0x23, "System Bus")
-					promo_skl_gain = memory.readbyte(rom_class + 0x24, "System Bus")
-					promo_spd_gain = memory.readbyte(rom_class + 0x25, "System Bus")
-					promo_def_gain = memory.readbyte(rom_class + 0x26, "System Bus")
-					promo_res_gain = memory.readbyte(rom_class + 0x27, "System Bus")
-					UnitsLut[lookupKey][3] = UnitsLut[lookupKey][3] + promo_hp_gain
-					UnitsLut[lookupKey][4] = UnitsLut[lookupKey][4] + promo_str_gain
-					UnitsLut[lookupKey][5] = UnitsLut[lookupKey][5] + promo_skl_gain
-					UnitsLut[lookupKey][6] = UnitsLut[lookupKey][6] + promo_spd_gain
-					UnitsLut[lookupKey][7] = UnitsLut[lookupKey][7] + promo_def_gain
-					UnitsLut[lookupKey][8] = UnitsLut[lookupKey][8] + promo_res_gain
-					ewan_promo_added = 1
-					UnitsLut[lookupKey][25] = 1
-				end
-				if UnitsLut[lookupKey][34] == 1 then -- we were promoted, so do lvl - 1 + pp_lvl - b_lvl + ppp_lvl - 1
-					lvls_gained = UnitsLut[lookupKey][10] - 1 + UnitsLut[lookupKey][25] - UnitsLut[lookupKey][2] + UnitsLut[lookupKey][35] - 1
-				elseif (UnitsLut[lookupKey][25] > 0) then --we're not promoted yet (still trainee class), so do lvl - b_lvl + ppp_lvl - 1
-					lvls_gained = UnitsLut[lookupKey][25] - UnitsLut[lookupKey][2] + UnitsLut[lookupKey][35] - 1
-				else
-					 lvls_gained = UnitsLut[lookupKey][35] - UnitsLut[lookupKey][2]
-				end
-			end
-		elseif (UnitsLut[lookupKey][25] == 0) then -- if pp_lvl == 0 then we're a pre-premote. do lvl - base + trainee levels
-			lvls_gained = UnitsLut[lookupKey][10] - UnitsLut[lookupKey][2]
-		elseif UnitsLut[lookupKey][34] == 1 then -- we were promoted, so do lvl - 1 + pp_lvl - b_lvl
-			lvls_gained = UnitsLut[lookupKey][10] - 1 + UnitsLut[lookupKey][25] - UnitsLut[lookupKey][2]
-			rom_class = memory.read_u32_le(addr + 0x4, "System Bus")
-			promo_hp_gain = memory.readbyte(rom_class + 0x22, "System Bus")
-			promo_str_gain = memory.readbyte(rom_class + 0x23, "System Bus")
-			promo_skl_gain = memory.readbyte(rom_class + 0x24, "System Bus")
-			promo_spd_gain = memory.readbyte(rom_class + 0x25, "System Bus")
-			promo_def_gain = memory.readbyte(rom_class + 0x26, "System Bus")
-			promo_res_gain = memory.readbyte(rom_class + 0x27, "System Bus")
-		else -- we're unpromoted
-			lvls_gained = UnitsLut[lookupKey][25] - UnitsLut[lookupKey][2]
+function updateLUT_stage5()
+	if Cdata['lvls_gained'] > UnitsLut[CurrentUnits[3]][33] then
+		if CurrentUnits[3] ~= Cdata['lookupKey'] then
+			CurrentUnits[1] = CurrentUnits[2]
+			CurrentUnits[2] = CurrentUnits[3]
+			CurrentUnits[3] = Cdata['lookupKey']
 		end
-		UnitsLut[lookupKey][33] = lvls_gained
-
-		avg_hp =  UnitsLut[lookupKey][03] + math.floor(lvls_gained * UnitsLut[lookupKey][18] + 0.5) + promo_hp_gain
-		avg_str = UnitsLut[lookupKey][04] + math.floor(lvls_gained * UnitsLut[lookupKey][19] + 0.5) + promo_str_gain
-		avg_skl = UnitsLut[lookupKey][05] + math.floor(lvls_gained * UnitsLut[lookupKey][20] + 0.5) + promo_skl_gain
-		avg_spd = UnitsLut[lookupKey][06] + math.floor(lvls_gained * UnitsLut[lookupKey][21] + 0.5) + promo_spd_gain
-		avg_def = UnitsLut[lookupKey][07] + math.floor(lvls_gained * UnitsLut[lookupKey][22] + 0.5) + promo_def_gain
-		avg_res = UnitsLut[lookupKey][08] + math.floor(lvls_gained * UnitsLut[lookupKey][23] + 0.5) + promo_res_gain
-		avg_lck = UnitsLut[lookupKey][09] + math.floor(lvls_gained * UnitsLut[lookupKey][24] + 0.5)
-		if (maxHP - avg_hp < 0) then
-			UnitsLut[lookupKey][26] = ""..maxHP-avg_hp
-		else
-			UnitsLut[lookupKey][26] = "+"..maxHP-avg_hp
+	elseif Cdata['lvls_gained'] > UnitsLut[CurrentUnits[2]][33] then
+		if CurrentUnits[2] ~= Cdata['lookupKey'] and CurrentUnits[3] ~= Cdata['lookupKey'] then
+			CurrentUnits[1] = CurrentUnits[2]
+			CurrentUnits[2] = Cdata['lookupKey']
 		end
-		if (str - avg_str < 0) then
-			UnitsLut[lookupKey][27] = ""..str-avg_str
-		else
-			UnitsLut[lookupKey][27] = "+"..str-avg_str
-		end
-		if (skl - avg_skl < 0) then
-			UnitsLut[lookupKey][28] = ""..skl-avg_skl
-		else
-			UnitsLut[lookupKey][28] = "+"..skl-avg_skl
-		end
-		if (spd - avg_spd < 0) then
-			UnitsLut[lookupKey][29] = ""..spd-avg_spd
-		else
-			UnitsLut[lookupKey][29] = "+"..spd-avg_spd
-		end
-		if (def - avg_def < 0) then
-			UnitsLut[lookupKey][30] = ""..def-avg_def
-		else
-			UnitsLut[lookupKey][30] = "+"..def-avg_def
-		end
-		if (res - avg_res < 0) then
-			UnitsLut[lookupKey][31] = ""..res-avg_res
-		else
-			UnitsLut[lookupKey][31] = "+"..res-avg_res
-		end
-		if (lck - avg_lck < 0) then
-			UnitsLut[lookupKey][32] = ""..lck-avg_lck
-		else
-			UnitsLut[lookupKey][32] = "+"..lck-avg_lck
-		end
-		--if unit is not in CurrentUnits then add them
-		if lvls_gained > UnitsLut[CurrentUnits[3]][33] then
-			if CurrentUnits[3] ~= lookupKey then
-				CurrentUnits[1] = CurrentUnits[2]
-				CurrentUnits[2] = CurrentUnits[3]
-				CurrentUnits[3] = lookupKey
-			end
-		elseif lvls_gained > UnitsLut[CurrentUnits[2]][33] then
-			if CurrentUnits[2] ~= lookupKey and CurrentUnits[3] ~= lookupKey then
-				CurrentUnits[1] = CurrentUnits[2]
-				CurrentUnits[2] = lookupKey
-			end
-		elseif lvls_gained > UnitsLut[CurrentUnits[1]][33] and CurrentUnits[1] ~= lookupKey and CurrentUnits[2] ~= lookupKey and CurrentUnits[3] ~= lookupKey then
-			CurrentUnits[1] = lookupKey
-		end
-	-- end
+	elseif Cdata['lvls_gained'] > UnitsLut[CurrentUnits[1]][33] and CurrentUnits[1] ~= Cdata['lookupKey'] and CurrentUnits[2] ~= Cdata['lookupKey'] and CurrentUnits[3] ~= Cdata['lookupKey'] then
+		CurrentUnits[1] = Cdata['lookupKey']
+	end
 end
 
 -- gui.drawBox(int x, int y, int x2, int y2, [luacolor line = nil], [luacolor background = nil], [string surfacename = nil]) 
 -- gui.drawBox(0, 0, 110, bufferheight-1, "#A97060", "#532e21", "emucore")
 
 
-num_displayed_units = 3
-last_num_displayed = 1
-local baseFontSize = 3
-width = 110
-
-local drawString = gui.drawString
-local drawLine = gui.drawLine
-local drawBox = gui.drawBox
-local transformPoint = client.transformPoint
 
 while true do
 	userInput = input.get()
+	local origin = client.transformPoint(0, 0)
+	local unit = client.transformPoint(1, 1)
+	local scaleX = unit.x - origin.x
+	local scaleY = unit.y - origin.y
 	local scale = client.screenwidth() / client.bufferwidth()
     local currentFontSize = math.floor(baseFontSize * scale)
 	-- updateLUT()
@@ -432,93 +452,270 @@ while true do
 	end
 	last_num_displayed = num_displayed_units
 
-	if (emu.framecount() & 0x7f) < 0x21 then -- the value is less than 33 (I.E. the max number of characters)
-		-- updateLUT(emu.framecount() & 0x2f)
+	if (emu.framecount() & 0xFF) < 0x90 then
+		-- I want to do all 5 stages of updating the LUT for each character
+		--        0 0 0 0 0             0 0 0
+		-- 5 bits for characters  3 bits for stages
+		-- emu.framecount < 2^8 (256)
+		-- max_char = 10010 000 = 0x90
+		-- call updateLUT with the top 5 bits
+		
+		-- lower bits are what state of calculations we're on
+		local stage = emu.framecount() & 0x7
+		-- char number effects the offset in memory we want to read for the character
+		local char_number = (emu.framecount() & 0xF8) >> 3
+		if (stage == 1) then
+			updateLUT_stage1(char_number)
+		end
+		if UnitsLut[Cdata['lookupKey']] ~= nil then
+			--stage 2 is the longest stage but still takes less than ~15us which is very quick
+			if (stage == 2) then
+				updateLUT_stage2(char_number)
+			end
+			if (stage == 3) then
+				updateLUT_stage3()
+			end
+			if (stage == 4) then
+				updateLUT_stage4()
+			end
+			if (stage == 5) then
+				updateLUT_stage5()
+			end
+		end
+		
     end
-	-- test     = memory.read_u32_le(0x0203A4E9, "System Bus")
-	-- print(test)
+				
+	-- posx = math.floor(origin.x + (scaleX * (1-width)))
+	-- posy = math.floor(origin.y + scaleY * 40)
+	posx = 0
+	posy = 40
 	
-	pos = transformPoint(1-width, 40)
-	drawString(pos.x, pos.y,  "LVL: ", "White", "Black", currentFontSize, "Consolas", "bold", "left", "bottom", "client")
-	pos = transformPoint(1-width, 50)
-	drawString(pos.x, pos.y,  "HP: ", "White", "Black", currentFontSize, "Consolas", "bold", "left", "bottom", "client")
-	pos = transformPoint(1-width, 60)
-	drawString(pos.x, pos.y,  "STR:", "White", "Black", currentFontSize, "Consolas", "bold", "left", "bottom", "client")
-	pos = transformPoint(1-width, 70)
-	drawString(pos.x, pos.y,  "SKL:", "White", "Black", currentFontSize, "Consolas", "bold", "left", "bottom", "client")
-	pos = transformPoint(1-width, 80)
-	drawString(pos.x, pos.y,  "SPD:", "White", "Black", currentFontSize, "Consolas", "bold", "left", "bottom", "client")
-	pos = transformPoint(1-width, 90)
-	drawString(pos.x, pos.y,  "LCK:", "White", "Black", currentFontSize, "Consolas", "bold", "left", "bottom", "client")
-	pos = transformPoint(1-width, 100)
-	drawString(pos.x, pos.y, "DEF:", "White", "Black", currentFontSize, "Consolas", "bold", "left", "bottom", "client")
-	pos = transformPoint(1-width, 110)
-	drawString(pos.x, pos.y, "RES:", "White", "Black", currentFontSize, "Consolas", "bold", "left", "bottom", "client")
+	-- local start = os.clock()
+	-- local iterations = 10000
+    -- for i = 1, iterations do
+    --     drawString(posx, posy,  "LVL: ", "White", nil, currentFontSize, "Consolas", "bold", "left", "bottom", "client")
+    -- end
+    -- local elapsed = os.clock() - start
+    -- -- Convert to microseconds per call
+    -- local perCall = (elapsed / iterations) * 1000000
+    -- print(string.format("%-20s | Total: %.4fs | Per Call: %.4f µs", name, elapsed, perCall))
+
+	-- local labels = string.format("%s\n\n%s\n\n%s\n\n%s\n\n%s\n\n%s\n\n%s\n\n%s",
+	-- 	"LVL:", "HP:", "STR", "SKL", "SPD", "LCK", "DEF", "RES")
+	-- gui.drawText(posx, posy,  labels, "White", "Black", currentFontSize, "Consolas", "bold", "left", "top", "client")
+	-- unitInfo = UnitsLut[CurrentUnits[3]]
+	-- if (unitInfo[1] ~= '') then
+	-- 	-- pos = transformPoint(28-width + 32*(num_displayed_units-1), 30)
+	-- 	posx = origin.x + scaleX * (28-width + 32*(num_displayed_units-1))
+	-- 	posy = origin.y + scaleY * 25
+	-- 	local stats = string.format(
+	-- 	"%s\n\n%2d\n\n%2d | %s\n\n%2d | %s\n\n%2d | %s\n\n%2d | %s\n\n%2d | %s\n\n%2d | %s\n\n%2d | %s",
+	-- 		unitInfo[1],  -- Name
+	-- 		unitInfo[10], -- LVL
+	-- 		unitInfo[11], unitInfo[26], -- HP
+	-- 		unitInfo[12], unitInfo[27], -- STR
+	-- 		unitInfo[13], unitInfo[28], -- SKL
+	-- 		unitInfo[14], unitInfo[29], -- SPD
+	-- 		unitInfo[17], unitInfo[32], -- LCK
+	-- 		unitInfo[15], unitInfo[30], -- DEF
+	-- 		unitInfo[16], unitInfo[31]  -- RES
+    -- 	)
+	-- 	gui.drawText(posx, posy,  stats, "White", "Black", currentFontSize, "Consolas", "bold", "center", "top", "client")
+	-- end
+	-- if (num_displayed_units > 1) then
+	-- 	unitInfo = UnitsLut[CurrentUnits[2]]
+	-- 	if (unitInfo[1] ~= '') then
+	-- 		-- pos = transformPoint(60-width - 32*(3-num_displayed_units), 30)
+	-- 		posx = origin.x + scaleX * (60-width - 32*(3-num_displayed_units))
+	-- 		posy = origin.y + scaleY * 25
+	-- 		local stats = string.format(
+	-- 		"%s\n\n%2d\n\n%2d | %s\n\n%2d | %s\n\n%2d | %s\n\n%2d | %s\n\n%2d | %s\n\n%2d | %s\n\n%2d | %s",
+	-- 			unitInfo[1],  -- Name
+	-- 			unitInfo[10], -- LVL
+	-- 			unitInfo[11], unitInfo[26], -- HP
+	-- 			unitInfo[12], unitInfo[27], -- STR
+	-- 			unitInfo[13], unitInfo[28], -- SKL
+	-- 			unitInfo[14], unitInfo[29], -- SPD
+	-- 			unitInfo[17], unitInfo[32], -- LCK
+	-- 			unitInfo[15], unitInfo[30], -- DEF
+	-- 			unitInfo[16], unitInfo[31]  -- RES
+	-- 		)
+	-- 		gui.drawText(posx, posy,  stats, "White", "Black", currentFontSize, "Consolas", "bold", "center", "top", "client")
+	-- 	end
+	-- end
+	-- if (num_displayed_units > 2) then
+	-- 	unitInfo = UnitsLut[CurrentUnits[1]]
+	-- 	if (unitInfo[1] ~= '') then
+	-- 		-- pos = transformPoint(28-width, 30)
+	-- 		posx = origin.x + scaleX * (28-width)
+	-- 		posy = origin.y + scaleY * 25
+	-- 		local stats = string.format(
+	-- 		"%s\n\n   %2d  \n\n%2d | %s\n\n%2d | %s\n\n%2d | %s\n\n%2d | %s\n\n%2d | %s\n\n%2d | %s\n\n%2d | %s",
+	-- 			unitInfo[1],  -- Name
+	-- 			unitInfo[10], -- LVL
+	-- 			unitInfo[11], unitInfo[26], -- HP
+	-- 			unitInfo[12], unitInfo[27], -- STR
+	-- 			unitInfo[13], unitInfo[28], -- SKL
+	-- 			unitInfo[14], unitInfo[29], -- SPD
+	-- 			unitInfo[17], unitInfo[32], -- LCK
+	-- 			unitInfo[15], unitInfo[30], -- DEF
+	-- 			unitInfo[16], unitInfo[31]  -- RES
+	-- 		)
+	-- 		gui.drawText(posx, posy,  stats, "White", "Black", currentFontSize, "Consolas", "bold", "center", "top", "client")
+	-- 	end
+	-- end
+
+
+	-- pos = transformPoint(1-width, 40)
+	drawString(posx, posy,  "LVL: ", "White", nil, 5, "Consolas", "bold", "left", "bottom", "emucore")
+	-- posx = origin.x + scaleX * (1-width)
+	-- posy = math.floor(origin.y + scaleY * 50)
+	posy = 50
+	-- pos = transformPoint(1-width, 50)
+	drawString(posx, posy,  "HP: ", "White", nil, 5, "Consolas", "bold", "left", "bottom", "emucore")
+	-- posx = origin.x + scaleX * (1-width)
+	posy = math.floor(origin.y + scaleY * 60)
+	-- pos = transformPoint(1-width, 60)
+	drawString(posx, posy,  "STR:", "White", nil, currentFontSize, "Consolas", "bold", "left", "bottom", "client")
+	-- posx = origin.x + scaleX * (1-width)
+	posy = math.floor(origin.y + scaleY * 70)
+	-- pos = transformPoint(1-width, 70)
+	drawString(posx, posy,  "SKL:", "White", nil, currentFontSize, "Consolas", "bold", "left", "bottom", "client")
+	-- posx = origin.x + scaleX * (1-width)
+	posy = math.floor(origin.y + scaleY * 80)
+	-- pos = transformPoint(1-width, 80)
+	drawString(posx, posy,  "SPD:", "White", nil, currentFontSize, "Consolas", "bold", "left", "bottom", "client")
+	-- posx = origin.x + scaleX * (1-width)
+	posy = math.floor(origin.y + scaleY * 90)
+	-- pos = transformPoint(1-width, 90)
+	drawString(posx, posy,  "LCK:", "White", nil, currentFontSize, "Consolas", "bold", "left", "bottom", "client")
+	-- posx = origin.x + scaleX * (1-width)
+	posy = math.floor(origin.y + scaleY * 100)
+	-- pos = transformPoint(1-width, 100)
+	drawString(posx, posy, "DEF:", "White", nil, currentFontSize, "Consolas", "bold", "left", "bottom", "client")
+	-- posx = origin.x + scaleX * (1-width)
+	posy = math.floor(origin.y + scaleY * 110)
+	-- pos = transformPoint(1-width, 110)
+	drawString(posx, posy, "RES:", "White", nil, currentFontSize, "Consolas", "bold", "left", "bottom", "client")
 	unitInfo = UnitsLut[CurrentUnits[3]]
 	if (unitInfo[1] ~= '') then
-		pos = transformPoint(28-width + 32*(num_displayed_units-1), 30)
-		drawString(pos.x, pos.y,  unitInfo[1], "White", "Black", currentFontSize, "Consolas", "bold", "center", "bottom", "client")
-		pos = transformPoint(28-width + 32*(num_displayed_units-1), 40)
-		drawString(pos.x, pos.y,  string.format("%2d",unitInfo[10]), "White", "Black", currentFontSize, "Consolas", "bold", "center", "bottom", "client")
-		pos = transformPoint(28-width + 32*(num_displayed_units-1), 50)
-		drawString(pos.x, pos.y,  string.format("%2d | %s",unitInfo[11],unitInfo[26]), "White", "Black", currentFontSize, "Consolas", "bold", "center", "bottom", "client")
-		pos = transformPoint(28-width + 32*(num_displayed_units-1), 60)
-		drawString(pos.x, pos.y,  string.format("%2d | %s",unitInfo[12],unitInfo[27]), "White", "Black", currentFontSize, "Consolas", "bold", "center", "bottom", "client")
-		pos = transformPoint(28-width + 32*(num_displayed_units-1), 70)
-		drawString(pos.x, pos.y,  string.format("%2d | %s",unitInfo[13],unitInfo[28]), "White", "Black", currentFontSize, "Consolas", "bold", "center", "bottom", "client")
-		pos = transformPoint(28-width + 32*(num_displayed_units-1), 80)
-		drawString(pos.x, pos.y,  string.format("%2d | %s",unitInfo[14],unitInfo[29]), "White", "Black", currentFontSize, "Consolas", "bold", "center", "bottom", "client")
-		pos = transformPoint(28-width + 32*(num_displayed_units-1), 90)
-		drawString(pos.x, pos.y,  string.format("%2d | %s",unitInfo[17],unitInfo[32]), "White", "Black", currentFontSize, "Consolas", "bold", "center", "bottom", "client")
-		pos = transformPoint(28-width + 32*(num_displayed_units-1), 100)
-		drawString(pos.x, pos.y, string.format("%2d | %s",unitInfo[15],unitInfo[30]), "White", "Black", currentFontSize, "Consolas", "bold", "center", "bottom", "client")
-		pos = transformPoint(28-width + 32*(num_displayed_units-1), 110)
-		drawString(pos.x, pos.y, string.format("%2d | %s",unitInfo[16],unitInfo[31]), "White", "Black", currentFontSize, "Consolas", "bold", "center", "bottom", "client")
+		-- pos = transformPoint(28-width + 32*(num_displayed_units-1), 30)
+		posx = math.floor(origin.x + scaleX * (28-width + 32*(num_displayed_units-1)))
+		posy = math.floor(origin.y + scaleY * 30)
+		drawString(posx, posy,  unitInfo[1], "White", nil, currentFontSize, "Consolas", "bold", "center", "bottom", "client")
+		-- posx = origin.x + scaleX * 28-width + 32*(num_displayed_units-1)
+		posy = math.floor(origin.y + scaleY * 40)
+		-- pos = transformPoint(28-width + 32*(num_displayed_units-1), 40)
+		drawString(posx, posy,  string.format("%2d",unitInfo[10]), "White", nil, currentFontSize, "Consolas", "bold", "center", "bottom", "client")
+		-- posx = origin.x + scaleX * 28-width + 32*(num_displayed_units-1)
+		posy = math.floor(origin.y + scaleY * 50)
+		-- pos = transformPoint(28-width + 32*(num_displayed_units-1), 50)
+		drawString(posx, posy,  string.format("%2d | %s",unitInfo[11],unitInfo[26]), "White", nil, currentFontSize, "Consolas", "bold", "center", "bottom", "client")
+		-- posx = origin.x + scaleX * 28-width + 32*(num_displayed_units-1)
+		posy = math.floor(origin.y + scaleY * 60)
+		-- pos = transformPoint(28-width + 32*(num_displayed_units-1), 60)
+		drawString(posx, posy,  string.format("%2d | %s",unitInfo[12],unitInfo[27]), "White", nil, currentFontSize, "Consolas", "bold", "center", "bottom", "client")
+		-- posx = origin.x + scaleX * 28-width + 32*(num_displayed_units-1)
+		posy = math.floor(origin.y + scaleY * 70)
+		-- pos = transformPoint(28-width + 32*(num_displayed_units-1), 70)
+		drawString(posx, posy,  string.format("%2d | %s",unitInfo[13],unitInfo[28]), "White", nil, currentFontSize, "Consolas", "bold", "center", "bottom", "client")
+		-- posx = origin.x + scaleX * 28-width + 32*(num_displayed_units-1)
+		posy = math.floor(origin.y + scaleY * 80)
+		-- pos = transformPoint(28-width + 32*(num_displayed_units-1), 80)
+		drawString(posx, posy,  string.format("%2d | %s",unitInfo[14],unitInfo[29]), "White", nil, currentFontSize, "Consolas", "bold", "center", "bottom", "client")
+		-- posx = origin.x + scaleX * 28-width + 32*(num_displayed_units-1)
+		posy = math.floor(origin.y + scaleY * 90)
+		-- pos = transformPoint(28-width + 32*(num_displayed_units-1), 90)
+		drawString(posx, posy,  string.format("%2d | %s",unitInfo[17],unitInfo[32]), "White", nil, currentFontSize, "Consolas", "bold", "center", "bottom", "client")
+		-- posx = origin.x + scaleX * 28-width + 32*(num_displayed_units-1)
+		posy = math.floor(origin.y + scaleY * 100)
+		-- pos = transformPoint(28-width + 32*(num_displayed_units-1), 100)
+		drawString(posx, posy, string.format("%2d | %s",unitInfo[15],unitInfo[30]), "White", nil, currentFontSize, "Consolas", "bold", "center", "bottom", "client")
+		-- posx = origin.x + scaleX * 28-width + 32*(num_displayed_units-1)
+		posy = math.floor(origin.y + scaleY * 110)
+		-- pos = transformPoint(28-width + 32*(num_displayed_units-1), 110)
+		drawString(posx, posy, string.format("%2d | %s",unitInfo[16],unitInfo[31]), "White", nil, currentFontSize, "Consolas", "bold", "center", "bottom", "client")
 	end
 	if (num_displayed_units > 1) then
 		unitInfo = UnitsLut[CurrentUnits[2]]
 		if (unitInfo[1] ~= '') then
-			pos = transformPoint(60-width - 32*(3-num_displayed_units), 30)
-			drawString(pos.x, pos.y,  unitInfo[1], "White", "Black", currentFontSize, "Consolas", "bold", "center", "bottom", "client")
-			pos = transformPoint(60-width - 32*(3-num_displayed_units), 40)
-			drawString(pos.x, pos.y,  string.format("%2d",unitInfo[10]), "White", "Black", currentFontSize, "Consolas", "bold", "center", "bottom", "client")
-			pos = transformPoint(60-width - 32*(3-num_displayed_units), 50)
-			drawString(pos.x, pos.y,  string.format("%2d | %s",unitInfo[11],unitInfo[26]), "White", "Black", currentFontSize, "Consolas", "bold", "center", "bottom", "client")
-			pos = transformPoint(60-width - 32*(3-num_displayed_units), 60)
-			drawString(pos.x, pos.y,  string.format("%2d | %s",unitInfo[12],unitInfo[27]), "White", "Black", currentFontSize, "Consolas", "bold", "center", "bottom", "client")
-			pos = transformPoint(60-width - 32*(3-num_displayed_units), 70)
-			drawString(pos.x, pos.y,  string.format("%2d | %s",unitInfo[13],unitInfo[28]), "White", "Black", currentFontSize, "Consolas", "bold", "center", "bottom", "client")
-			pos = transformPoint(60-width - 32*(3-num_displayed_units), 80)
-			drawString(pos.x, pos.y,  string.format("%2d | %s",unitInfo[14],unitInfo[29]), "White", "Black", currentFontSize, "Consolas", "bold", "center", "bottom", "client")
-			pos = transformPoint(60-width - 32*(3-num_displayed_units), 90)
-			drawString(pos.x, pos.y,  string.format("%2d | %s",unitInfo[17],unitInfo[32]), "White", "Black", currentFontSize, "Consolas", "bold", "center", "bottom", "client")
-			pos = transformPoint(60-width - 32*(3-num_displayed_units), 100)
-			drawString(pos.x, pos.y, string.format("%2d | %s",unitInfo[15],unitInfo[30]), "White", "Black", currentFontSize, "Consolas", "bold", "center", "bottom", "client")
-			pos = transformPoint(60-width - 32*(3-num_displayed_units), 110)
-			drawString(pos.x, pos.y, string.format("%2d | %s",unitInfo[16],unitInfo[31]), "White", "Black", currentFontSize, "Consolas", "bold", "center", "bottom", "client")
+			-- pos = transformPoint(60-width - 32*(3-num_displayed_units), 30)
+			posx = math.floor(origin.x + scaleX * (60-width - 32*(3-num_displayed_units)))
+			posy = math.floor(origin.y + scaleY * 30)
+			drawString(posx, posy,  unitInfo[1], "White", nil, currentFontSize, "Consolas", "bold", "center", "bottom", "client")
+			-- posx = origin.x + scaleX * (1-width)
+			posy = math.floor(origin.y + scaleY * 40)
+			-- pos = transformPoint(60-width - 32*(3-num_displayed_units), 40)
+			drawString(posx, posy,  string.format("%2d",unitInfo[10]), "White", nil, currentFontSize, "Consolas", "bold", "center", "bottom", "client")
+			-- posx = origin.x + scaleX * (1-width)
+			posy = math.floor(origin.y + scaleY * 50)
+			-- pos = transformPoint(60-width - 32*(3-num_displayed_units), 50)
+			drawString(posx, posy,  string.format("%2d | %s",unitInfo[11],unitInfo[26]), "White", nil, currentFontSize, "Consolas", "bold", "center", "bottom", "client")
+			-- posx = origin.x + scaleX * (1-width)
+			posy = math.floor(origin.y + scaleY * 60)
+			-- pos = transformPoint(60-width - 32*(3-num_displayed_units), 60)
+			drawString(posx, posy,  string.format("%2d | %s",unitInfo[12],unitInfo[27]), "White", nil, currentFontSize, "Consolas", "bold", "center", "bottom", "client")
+			-- posx = origin.x + scaleX * (1-width)
+			posy = math.floor(origin.y + scaleY * 70)
+			-- pos = transformPoint(60-width - 32*(3-num_displayed_units), 70)
+			drawString(posx, posy,  string.format("%2d | %s",unitInfo[13],unitInfo[28]), "White", nil, currentFontSize, "Consolas", "bold", "center", "bottom", "client")
+			-- posx = origin.x + scaleX * (1-width)
+			posy = math.floor(origin.y + scaleY * 80)
+			-- pos = transformPoint(60-width - 32*(3-num_displayed_units), 80)
+			drawString(posx, posy,  string.format("%2d | %s",unitInfo[14],unitInfo[29]), "White", nil, currentFontSize, "Consolas", "bold", "center", "bottom", "client")
+			-- posx = origin.x + scaleX * (1-width)
+			posy = math.floor(origin.y + scaleY * 90)
+			-- pos = transformPoint(60-width - 32*(3-num_displayed_units), 90)
+			drawString(posx, posy,  string.format("%2d | %s",unitInfo[17],unitInfo[32]), "White", nil, currentFontSize, "Consolas", "bold", "center", "bottom", "client")
+			-- posx = origin.x + scaleX * (1-width)
+			posy = math.floor(origin.y + scaleY * 100)
+			-- pos = transformPoint(60-width - 32*(3-num_displayed_units), 100)
+			drawString(posx, posy, string.format("%2d | %s",unitInfo[15],unitInfo[30]), "White", nil, currentFontSize, "Consolas", "bold", "center", "bottom", "client")
+			-- posx = origin.x + scaleX * (1-width)
+			posy = math.floor(origin.y + scaleY * 110)
+			-- pos = transformPoint(60-width - 32*(3-num_displayed_units), 110)
+			drawString(posx, posy, string.format("%2d | %s",unitInfo[16],unitInfo[31]), "White", nil, currentFontSize, "Consolas", "bold", "center", "bottom", "client")
 		end
 	end
 	if (num_displayed_units > 2) then
 		unitInfo = UnitsLut[CurrentUnits[1]]
 		if (unitInfo[1] ~= '') then
-			pos = transformPoint(28-width, 30)
-			drawString(pos.x, pos.y,  unitInfo[1], "White", "Black", currentFontSize, "Consolas", "bold", "center", "bottom", "client")
-			pos = transformPoint(28-width, 40)
-			drawString(pos.x, pos.y,  string.format("%2d",unitInfo[10]), "White", "Black", currentFontSize, "Consolas", "bold", "center", "bottom", "client")
-			pos = transformPoint(28-width, 50)
-			drawString(pos.x, pos.y,  string.format("%2d | %s",unitInfo[11],unitInfo[26]), "White", "Black", currentFontSize, "Consolas", "bold", "center", "bottom", "client")
-			pos = transformPoint(28-width, 60)
-			drawString(pos.x, pos.y,  string.format("%2d | %s",unitInfo[12],unitInfo[27]), "White", "Black", currentFontSize, "Consolas", "bold", "center", "bottom", "client")
-			pos = transformPoint(28-width, 70)
-			drawString(pos.x, pos.y,  string.format("%2d | %s",unitInfo[13],unitInfo[28]), "White", "Black", currentFontSize, "Consolas", "bold", "center", "bottom", "client")
-			pos = transformPoint(28-width, 80)
-			drawString(pos.x, pos.y,  string.format("%2d | %s",unitInfo[14],unitInfo[29]), "White", "Black", currentFontSize, "Consolas", "bold", "center", "bottom", "client")
-			pos = transformPoint(28-width, 90)
-			drawString(pos.x, pos.y,  string.format("%2d | %s",unitInfo[17],unitInfo[32]), "White", "Black", currentFontSize, "Consolas", "bold", "center", "bottom", "client")
-			pos = transformPoint(28-width, 100)
-			drawString(pos.x, pos.y, string.format("%2d | %s",unitInfo[15],unitInfo[30]), "White", "Black", currentFontSize, "Consolas", "bold", "center", "bottom", "client")
-			pos = transformPoint(28-width, 110)
-			drawString(pos.x, pos.y, string.format("%2d | %s",unitInfo[16],unitInfo[31]), "White", "Black", currentFontSize, "Consolas", "bold", "center", "bottom", "client")
+			-- pos = transformPoint(28-width, 30)
+			posx = math.floor(origin.x + scaleX * (28-width))
+			posy = math.floor(origin.y + scaleY * 30)
+			drawString(posx, posy,  unitInfo[1], "White", nil, currentFontSize, "Consolas", "bold", "center", "bottom", "client")
+			-- pos = transformPoint(28-width, 40)
+			-- posx = origin.x + scaleX * 28-width
+			posy = math.floor(origin.y + scaleY * 40)
+			drawString(posx, posy,  string.format("%2d",unitInfo[10]), "White", nil, currentFontSize, "Consolas", "bold", "center", "bottom", "client")
+			-- pos = transformPoint(28-width, 50)
+			-- posx = origin.x + scaleX * 28-width
+			posy = math.floor(origin.y + scaleY * 50)
+			drawString(posx, posy,  string.format("%2d | %s",unitInfo[11],unitInfo[26]), "White", nil, currentFontSize, "Consolas", "bold", "center", "bottom", "client")
+			-- pos = transformPoint(28-width, 60)
+			-- posx = origin.x + scaleX * 28-width
+			posy = math.floor(origin.y + scaleY * 60)
+			drawString(posx, posy,  string.format("%2d | %s",unitInfo[12],unitInfo[27]), "White", nil, currentFontSize, "Consolas", "bold", "center", "bottom", "client")
+			-- pos = transformPoint(28-width, 70)
+			-- posx = origin.x + scaleX * 28-width
+			posy = math.floor(origin.y + scaleY * 70)
+			drawString(posx, posy,  string.format("%2d | %s",unitInfo[13],unitInfo[28]), "White", nil, currentFontSize, "Consolas", "bold", "center", "bottom", "client")
+			-- pos = transformPoint(28-width, 80)
+			-- posx = origin.x + scaleX * 28-width
+			posy = math.floor(origin.y + scaleY * 80)
+			drawString(posx, posy,  string.format("%2d | %s",unitInfo[14],unitInfo[29]), "White", nil, currentFontSize, "Consolas", "bold", "center", "bottom", "client")
+			-- pos = transformPoint(28-width, 90)
+			-- posx = origin.x + scaleX * 28-width
+			posy = math.floor(origin.y + scaleY * 90)
+			drawString(posx, posy,  string.format("%2d | %s",unitInfo[17],unitInfo[32]), "White", nil, currentFontSize, "Consolas", "bold", "center", "bottom", "client")
+			-- pos = transformPoint(28-width, 100)
+			-- posx = origin.x + scaleX * 28-width
+			posy = math.floor(origin.y + scaleY * 100)
+			drawString(posx, posy, string.format("%2d | %s",unitInfo[15],unitInfo[30]), "White", nil, currentFontSize, "Consolas", "bold", "center", "bottom", "client")
+			-- pos = transformPoint(28-width, 110)
+			-- posx = origin.x + scaleX * 28-width
+			posy = math.floor(origin.y + scaleY * 110)
+			drawString(posx, posy, string.format("%2d | %s",unitInfo[16],unitInfo[31]), "White", nil, currentFontSize, "Consolas", "bold", "center", "bottom", "client")
 		end
 	end
 	
@@ -529,14 +726,14 @@ while true do
 		userInput = input.get()
 		checkForUserInput()
 		pos = transformPoint(-2, bufferheight-1)
-		drawString(pos.x, pos.y, "ACTIVE", 0xFF00FF40, "Black", currentFontSize, "Consolas", "bold", "right", "bottom", "client")
+		drawString(pos.x, pos.y, "ACTIVE", 0xFF00FF40, nil, currentFontSize, "Consolas", "bold", "right", "bottom", "client")
 		if displayRNG then
 			printRNG(numDisplayedRNs)
 		end
 		-- emu.frameadvance()
 	else
 		pos = transformPoint(-2, bufferheight-1)
-		drawString(pos.x, pos.y, "PAUSED", "Red", "Black", currentFontSize, "Consolas", "bold", "right", "bottom", "client")
+		drawString(pos.x, pos.y, "PAUSED", "Red", nil, currentFontSize, "Consolas", "bold", "right", "bottom", "client")
 	end
 	if displayRNG then
 		printRNG(numDisplayedRNs)
