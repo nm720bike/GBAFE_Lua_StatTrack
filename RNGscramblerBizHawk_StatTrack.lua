@@ -357,10 +357,7 @@ function updateLUT_stage3()
 		-- print("level up detected")
 	end
 	unit_arr[33] = Cdata['lvls_gained']
-end
 
-function updateLUT_stage4()
-	local unit_arr = UnitsLut[Cdata['lookupKey']]
 	local promo_hp_gain = 0
 	local promo_str_gain = 0
 	local promo_skl_gain = 0
@@ -393,7 +390,7 @@ function updateLUT_stage4()
 	unit_arr[32] = Cdata['lck']-avg_lck
 end
 
-function updateLUT_stage5()
+function updateLUT_stage4()
 	if (leveled_up == 1) then 
 		re_draw = 1
 		-- print('requested redraw')
@@ -426,18 +423,19 @@ local scaleY = unit.y - origin.y
 while true do
 	userInput = input.get()
 	local origin = client.transformPoint(0, 0)
-	if (emu.framecount() & 0xFF) < 0x90 then
+	if (emu.framecount() & 0x7F) < 0x41 then
 		-- I want to do all 5 stages of updating the LUT for each character
-		--        0 0 0 0 0             0 0 0
-		-- 5 bits for characters  3 bits for stages
+		--        0 0 0 0 0             0 0
+		-- 5 bits for characters  2 bits for stages
 		-- emu.framecount < 2^8 (256)
-		-- max_char = 10010 000 = 0x90
+		-- max_char = 10010 00 = 0x41
+		-- 			  11111 00 = 0x7C (mask for character number)
 		-- call updateLUT with the top 5 bits
 		
 		-- lower bits are what state of calculations we're on
-		local stage = emu.framecount() & 0x7
+		local stage = (emu.framecount() & 0x3) + 1
 		-- char number effects the offset in memory we want to read for the character
-		local char_number = (emu.framecount() & 0xF8) >> 3
+		local char_number = (emu.framecount() & 0x7C) >> 2
 		if (stage == 1) then
 			updateLUT_stage1(char_number)
 		end
@@ -451,9 +449,6 @@ while true do
 			end
 			if (stage == 4) then
 				updateLUT_stage4()
-			end
-			if (stage == 5) then
-				updateLUT_stage5()
 			end
 		end
 		
