@@ -25,6 +25,9 @@ local RNGPosition = 0
 local lastRNGPosition = 0
 local userInput = input.get()
 local displayRNG = false
+local current_color = 0
+local background_color = "#532e21"
+local foreground_color = "#A97060"
 
 -- Read consecutive values from the ROM to find a special string (ex/ FIREEMBLEM6.AFEJ01) used to distinguish between games
 for i = 0, 18, 1 do
@@ -46,6 +49,16 @@ local phaseMap = {
 	['Sacred Stones U'] = 0x0202BCFF,
 	['Sacred Stones J'] = 0x0202BCFB
 }
+
+local color_arr = {
+	[0] = {"#532e21", "#A97060"},
+	[1] = {"#242485", "#3536C2"},
+	[2] = {"#852924", "#C23D35"},
+	[3] = {"#24852D", "#34C242"}
+	
+}
+
+
 -- Unit info is displayed as [ID] = {name, b_lvl, b_hp, b_str, b_skl, b_spd, b_def, b_res, b_lck, c_lvl, c_hp, c_str, c_skl, c_spd, c_def, c_res, c_lck, hp_g, str_g, skl_g, spd_g, def_g,  res_g, lck_g, pp_lvl, avg_hp, avg_str, avg_skl, avg_spd, avg_def, avg_res, avg_lck, total_lvls, promoted, ppp_lvl}
 --									[01,    02,    03,    04,    05,    06,    07,    08,    09,   10,    11,    12,    13,    14,    15,    16,    17,   18,    19,    20,   21,     22,    23,    24,    25,     26,      27,      28,      29,      30,       31,      32       33,         34,       35]
 -- b_* = base stat. c_* = current stat. *_g = growth. avg_* = amount +- avg
@@ -94,7 +107,9 @@ local CurrentUnits = {'testtest', 'testtest', 'testtest'}
 heldDown = {
 	['R'] = false, 
 	['Right'] = false,
-	['Left'] = false
+	['Left'] = false,
+	['Up'] = false,
+	['Down'] = false
 }
 
 currentGame = gameIDMap[gameID]
@@ -169,13 +184,25 @@ function checkForUserInput()
 		displayRNG = not displayRNG
 	end
 	if userInput.Right and heldDown['Right'] == false then
-		-- help display on/off
+		-- Add one more unit
 		num_displayed_units = math.min(num_displayed_units + 1, 3)
 		re_draw = 1
 	end
 	if userInput.Left and heldDown['Left'] == false then
-		-- help display on/off
+		-- Add one less unit
 		num_displayed_units = math.max(num_displayed_units - 1, 1)
+		re_draw = 1
+	end
+	if userInput.Up and heldDown['Up'] == false then
+		current_color = (current_color + 1) % 4
+		background_color = color_arr[current_color][1]
+		foreground_color = color_arr[current_color][2]
+		re_draw = 1
+	end
+	if userInput.Down and heldDown['Down'] == false then
+		current_color = (current_color - 1) % 4
+		background_color = color_arr[current_color][1]
+		foreground_color = color_arr[current_color][2]
 		re_draw = 1
 	end
 	for key, value in pairs(heldDown) do
@@ -468,17 +495,17 @@ while true do
 		end
 		last_num_displayed = num_displayed_units
 
-		drawBox(0, 0, width, bufferheight-1, "#A97060", "#532e21", "emucore")
-		drawLine(15, 0, 15, bufferheight, "#A97060", "emucore") -- vertical line at -98
+		drawBox(0, 0, width, bufferheight-1, foreground_color, background_color, "emucore")
+		drawLine(15, 0, 15, bufferheight, foreground_color, "emucore") -- vertical line at -98
 		
-		drawLine(0, 42, width, 42, "#A97060", "emucore") -- horizontal line at 42
-		drawLine(0, 52, width, 52, "#A97060", "emucore") -- horizontal line at 52
-		drawLine(0, 62, width, 62, "#A97060", "emucore") -- horizontal line at 62
-		drawLine(0, 72, width, 72, "#A97060", "emucore") -- horizontal line at 72
-		drawLine(0, 82, width, 82, "#A97060", "emucore") -- horizontal line at 82
-		drawLine(0, 92, width, 92, "#A97060", "emucore") -- horizontal line at 92
-		drawLine(0, 102, width, 102, "#A97060", "emucore") -- horizontal line at 102
-		drawLine(0, 112, width, 112, "#A97060", "emucore") -- horizontal line at 112
+		drawLine(0, 42, width, 42, foreground_color, "emucore") -- horizontal line at 42
+		drawLine(0, 52, width, 52, foreground_color, "emucore") -- horizontal line at 52
+		drawLine(0, 62, width, 62, foreground_color, "emucore") -- horizontal line at 62
+		drawLine(0, 72, width, 72, foreground_color, "emucore") -- horizontal line at 72
+		drawLine(0, 82, width, 82, foreground_color, "emucore") -- horizontal line at 82
+		drawLine(0, 92, width, 92, foreground_color, "emucore") -- horizontal line at 92
+		drawLine(0, 102, width, 102, foreground_color, "emucore") -- horizontal line at 102
+		drawLine(0, 112, width, 112, foreground_color, "emucore") -- horizontal line at 112
 		
 		-- gui.drawImage("./images/Ephraim.png", 17, 1)
 		gui.drawImageRegion("./images/ref_img.png",0,0,13,6,1,45) -- lvl
@@ -494,7 +521,7 @@ while true do
 			gui.drawImage("./images/"..unitInfo[1]..".png", width-33, 1)
 			local name_index = math.floor((tonumber(CurrentUnits[3],16) - 142622000)/52)
 			gui.drawImageRegion("./images/ref_img.png",37,0 + name_index*6,32,6,width-33,35) -- Name
-			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[10]*6,9,6,width-33 + 9,45) -- lvl
+			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[10]*6,9,6,width-34 + 9,45) -- lvl
 			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[11]*6,9,6,width-33 + 4,55) -- hp
 			gui.drawImageRegion("./images/ref_img.png",22,125 + (unitInfo[26])*6,15,6,width-33 + 13,55) -- hp avg
 			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[12]*6,9,6,width-33 + 4,65) -- str
@@ -511,13 +538,13 @@ while true do
 			gui.drawImageRegion("./images/ref_img.png",22,125 + (unitInfo[31])*6,15,6,width-33 + 13,115) -- res avg
 		end
 		if (num_displayed_units > 1) then
-			drawLine(48, 0, 48, bufferheight, "#A97060", "emucore") -- vertical line at -66
+			drawLine(48, 0, 48, bufferheight, foreground_color, "emucore") -- vertical line at -66
 			unitInfo = UnitsLut[CurrentUnits[2]]
 			if (unitInfo[1] ~= '') then
 				gui.drawImage("./images/"..unitInfo[1]..".png", width-67, 1)
 				local name_index = math.floor((tonumber(CurrentUnits[2],16) - 142622000)/52)
 				gui.drawImageRegion("./images/ref_img.png",37,0 + name_index*6,32,6,width-65,35) -- Name
-				gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[10]*6,9,6,width-65 + 9,45) -- lvl
+				gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[10]*6,9,6,width-66 + 9,45) -- lvl
 				gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[11]*6,9,6,width-65 + 4,55) -- hp
 				gui.drawImageRegion("./images/ref_img.png",22,125 + (unitInfo[26])*6,15,6,width-65 + 13,55) -- hp avg
 				gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[12]*6,9,6,width-65 + 4,65) -- str
@@ -535,13 +562,13 @@ while true do
 			end
 		end
 		if (num_displayed_units > 2) then
-			drawLine(81, 0, 81, bufferheight, "#A97060", "emucore") -- vertical line at -34
+			drawLine(81, 0, 81, bufferheight, foreground_color, "emucore") -- vertical line at -34
 			unitInfo = UnitsLut[CurrentUnits[1]]
 			if (unitInfo[1] ~= '') then
 				gui.drawImage("./images/"..unitInfo[1]..".png", width-99, 1)
 				local name_index = math.floor((tonumber(CurrentUnits[1],16) - 142622000)/52)
 				gui.drawImageRegion("./images/ref_img.png",37,0 + name_index*6,32,6,width-97,35) -- Name
-				gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[10]*6,9,6,width-97 + 9,45) -- lvl
+				gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[10]*6,9,6,width-98 + 9,45) -- lvl
 				gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[11]*6,9,6,width-97 + 4,55) -- hp
 				gui.drawImageRegion("./images/ref_img.png",22,125 + (unitInfo[26])*6,15,6,width-97 + 13,55) -- hp avg
 				gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[12]*6,9,6,width-97 + 4,65) -- str
