@@ -5,9 +5,6 @@ local numDisplayedRNs = 20
 local superRNToRNConversionDivisor = 655.36
 local gameID = ""
 gui.use_surface("emucore")
--- local myCanvas = gui.createcanvas(200, 200)
---     client.SetGameExtraPadding(int left, int top, int right, int bottom) 
-
 local bufferwidth = client.bufferwidth()
 local bufferheight = client.bufferheight()
 local num_displayed_units = 0
@@ -102,16 +99,13 @@ local UnitsLut = {
 	['testtest'] = {"",			00,	00,	00,	00,	00,	00,	00,	00, 0, 0, 0, 0, 0, 0, 0, 0, 0.00, 0.00, 0.00, 0.00,0.00, 0.00, 0.00, 00, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 }
 
--- print(UnitsLut['8803D64'])
--- current units
 local CurrentUnits = {'testtest', 'testtest', 'testtest'}
 
 heldDown = {
 	['R'] = false, 
-	['Right'] = false,
-	['Left'] = false,
-	['Up'] = false,
-	['Down'] = false
+	['Period'] = false,
+	['Comma'] = false,
+	['Slash'] = false
 }
 
 currentGame = gameIDMap[gameID]
@@ -185,24 +179,18 @@ function checkForUserInput()
 		-- help display on/off
 		displayRNG = not displayRNG
 	end
-	if userInput.Right and heldDown['Right'] == false then
+	if userInput.Period and heldDown['Period'] == false then
 		-- Add one more unit
 		num_displayed_units = math.max(num_displayed_units - 1,-3)
 		re_draw = 1
 	end
-	if userInput.Left and heldDown['Left'] == false then
+	if userInput.Comma and heldDown['Comma'] == false then
 		-- Add one less unit
 		num_displayed_units = math.min(num_displayed_units + 1, 3)
 		re_draw = 1
 	end
-	if userInput.Up and heldDown['Up'] == false then
+	if userInput.Slash and heldDown['Slash'] == false then
 		current_color = (current_color + 1) % 6
-		background_color = color_arr[current_color][1]
-		foreground_color = color_arr[current_color][2]
-		re_draw = 1
-	end
-	if userInput.Down and heldDown['Down'] == false then
-		current_color = (current_color - 1) % 6
 		background_color = color_arr[current_color][1]
 		foreground_color = color_arr[current_color][2]
 		re_draw = 1
@@ -218,6 +206,7 @@ end
 local ross_promo_added = 0
 local amelia_promo_added = 0
 local ewan_promo_added = 0
+
 --current data of who we're working on
 local Cdata = {
 	['lookupKey'] = 0,
@@ -239,14 +228,14 @@ function updateLUT(char_number, stage)
 
 end
 
-function updateLUT_stage1(char_number)
+function updateLUT_stage1(char_number) -- ~3us on average
 	addr = baseAddress + (char_number*0x48)
 	local Rom_unit = memory.read_u32_le(addr, "System Bus")
 	Cdata['lookupKey'] = string.format("%07X", Rom_unit)
 	unit_arr = UnitsLut[Cdata['lookupKey']]
 end
 
-function updateLUT_stage2(char_number) 
+function updateLUT_stage2(char_number) -- ~7-15us on average
 	unit_arr = UnitsLut[Cdata['lookupKey']]
 	local bytes = memory.read_bytes_as_array(addr + 0x8, 18, "System Bus")
 	lvl = bytes[1]
@@ -282,7 +271,7 @@ function updateLUT_stage2(char_number)
 	unit_arr[17] = lck
 end
 
-function updateLUT_stage3()
+function updateLUT_stage3() -- ~4us on average
 	local promo_hp_gain = 0
 	local promo_str_gain = 0
 	local promo_skl_gain = 0
@@ -393,9 +382,9 @@ function updateLUT_stage3()
 	local promo_spd_gain = 0
 	local promo_def_gain = 0
 	local promo_res_gain = 0
-	if unit_arr[34] == 1 then 
-		rom_class = memory.read_u32_le(addr + 0x4, "System Bus")
-		promo_gain_arr = memory.read_bytes_as_array(rom_class + 0x22, 6, "System Bus")
+	if unit_arr[34] == 1 then -- if promoted 
+		rom_class = memory.read_u32_le(addr + 0x4, "System Bus") -- read class
+		promo_gain_arr = memory.read_bytes_as_array(rom_class + 0x22, 6, "System Bus") -- read promo bonuses from class
 		promo_hp_gain = promo_gain_arr[1]
 		promo_str_gain = promo_gain_arr[2]
 		promo_skl_gain = promo_gain_arr[3]
@@ -419,10 +408,9 @@ function updateLUT_stage3()
 	unit_arr[32] = Cdata['lck']-avg_lck
 end
 
-function updateLUT_stage4()
+function updateLUT_stage4() -- ~1.4us on average
 	if (leveled_up == 1) then 
 		re_draw = 1
-		-- print('requested redraw')
 		leveled_up = 0
 	end
 	if Cdata['lvls_gained'] > UnitsLut[CurrentUnits[3]][33] then
@@ -575,30 +563,15 @@ function draw()
 	end
 end
 
-function draw_right()
-
-end
-
--- gui.drawBox(int x, int y, int x2, int y2, [luacolor line = nil], [luacolor background = nil], [string surfacename = nil]) 
--- gui.drawBox(0, 0, 110, bufferheight-1, "#A97060", "#532e21", "emucore")
-local origin = client.transformPoint(0, 0)
-local unit = client.transformPoint(1, 1)
-local scaleX = unit.x - origin.x
-local scaleY = unit.y - origin.y
-
 
 while true do
-	userInput = input.get()
-	local origin = client.transformPoint(0, 0)
 	if (emu.framecount() & 0x7F) < 0x41 then
-		-- I want to do all 5 stages of updating the LUT for each character
+		-- I want to do all 4 stages of updating the LUT for each character
 		--        0 0 0 0 0             0 0
 		-- 5 bits for characters  2 bits for stages
 		-- emu.framecount < 2^8 (256)
 		-- max_char = 10010 00 = 0x41
 		-- 			  11111 00 = 0x7C (mask for character number)
-		-- call updateLUT with the top 5 bits
-		
 		-- lower bits are what state of calculations we're on
 		local stage = (emu.framecount() & 0x3) + 1
 		-- char number effects the offset in memory we want to read for the character
@@ -630,17 +603,14 @@ while true do
 		re_draw = 0
 	end
 	
+	userInput = input.get()
 	checkForUserInput()
 	if memory.readbyte(phaseMap[currentGame]) == 0 then
 		advanceRNG()
-		userInput = input.get()
-		checkForUserInput()
-		-- turn into a draw box?
 		gui.text(0, 0, "ACTIVE", 0xFF00FF40)
 		if displayRNG then
 			printRNG(numDisplayedRNs)
 		end
-		-- emu.frameadvance()
 	else
 		gui.text(2, 2, "PAUSED", "red")
 	end
