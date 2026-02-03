@@ -10,8 +10,8 @@ gui.use_surface("emucore")
 
 local bufferwidth = client.bufferwidth()
 local bufferheight = client.bufferheight()
-local num_displayed_units = 3
-local last_num_displayed = 1
+local num_displayed_units = 0
+local last_num_displayed = 0
 local baseFontSize = 3
 local width = 110
 local re_draw = 1
@@ -52,9 +52,11 @@ local phaseMap = {
 
 local color_arr = {
 	[0] = {"#532e21", "#A97060"},
-	[1] = {"#242485", "#3536C2"},
-	[2] = {"#852924", "#C23D35"},
-	[3] = {"#24852D", "#34C242"}
+	[1] = {"#252153", "#6660a9"},
+	[2] = {"#53214f", "#a960a3"},
+	[3] = {"#255321", "#66a960"},
+	[4] = {"#214253", "#6091a9"},
+	[5] = {"#532121", "#a96060"}
 	
 }
 
@@ -185,22 +187,22 @@ function checkForUserInput()
 	end
 	if userInput.Right and heldDown['Right'] == false then
 		-- Add one more unit
-		num_displayed_units = math.min(num_displayed_units + 1, 3)
+		num_displayed_units = math.max(num_displayed_units - 1,-3)
 		re_draw = 1
 	end
 	if userInput.Left and heldDown['Left'] == false then
 		-- Add one less unit
-		num_displayed_units = math.max(num_displayed_units - 1, 1)
+		num_displayed_units = math.min(num_displayed_units + 1, 3)
 		re_draw = 1
 	end
 	if userInput.Up and heldDown['Up'] == false then
-		current_color = (current_color + 1) % 4
+		current_color = (current_color + 1) % 6
 		background_color = color_arr[current_color][1]
 		foreground_color = color_arr[current_color][2]
 		re_draw = 1
 	end
 	if userInput.Down and heldDown['Down'] == false then
-		current_color = (current_color - 1) % 4
+		current_color = (current_color - 1) % 6
 		background_color = color_arr[current_color][1]
 		foreground_color = color_arr[current_color][2]
 		re_draw = 1
@@ -439,6 +441,144 @@ function updateLUT_stage4()
 	end
 end
 
+function draw()
+	if (num_displayed_units == 3) then
+		width = 114
+		offset = 0
+	elseif num_displayed_units == 2 then
+		width = 81
+		offset = 0
+	elseif num_displayed_units == 1 then
+		width = 48
+		offset = 0
+	elseif (num_displayed_units == -3) then
+		width = 114
+		offset = bufferwidth
+	elseif num_displayed_units == -2 then
+		width = 81
+		offset = bufferwidth
+	elseif num_displayed_units == -1 then
+		width = 48
+		offset = bufferwidth
+	end
+	if (last_num_displayed ~= num_displayed_units and num_displayed_units > 0) then
+		client.SetGameExtraPadding(width, 0, 0, 0)
+	elseif (last_num_displayed ~= num_displayed_units and num_displayed_units < 0) then
+		client.SetGameExtraPadding(0, 0, width, 0)
+	end
+	
+
+	drawBox(0+offset, 0, width+offset, bufferheight-1, foreground_color, background_color, "emucore")
+	drawLine(15+offset, 0, 15+offset, bufferheight, foreground_color, "emucore") -- vertical line at -98
+	
+	drawLine(0+offset, 42, width+offset, 42, foreground_color, "emucore") -- horizontal line at 42
+	drawLine(0+offset, 52, width+offset, 52, foreground_color, "emucore") -- horizontal line at 52
+	drawLine(0+offset, 62, width+offset, 62, foreground_color, "emucore") -- horizontal line at 62
+	drawLine(0+offset, 72, width+offset, 72, foreground_color, "emucore") -- horizontal line at 72
+	drawLine(0+offset, 82, width+offset, 82, foreground_color, "emucore") -- horizontal line at 82
+	drawLine(0+offset, 92, width+offset, 92, foreground_color, "emucore") -- horizontal line at 92
+	drawLine(0+offset, 102, width+offset, 102, foreground_color, "emucore") -- horizontal line at 102
+	drawLine(0+offset, 112, width+offset, 112, foreground_color, "emucore") -- horizontal line at 112
+	
+	-- gui.drawImage("./images/Ephraim.png", 17, 1)
+	gui.drawImageRegion("./images/ref_img.png",0,0,13,6,1+offset,45) -- lvl
+	gui.drawImageRegion("./images/ref_img.png",0,6,13,6,1+offset,55) -- hp
+	gui.drawImageRegion("./images/ref_img.png",0,12,13,6,1+offset,65) -- str
+	gui.drawImageRegion("./images/ref_img.png",0,18,13,6,1+offset,75) -- skl
+	gui.drawImageRegion("./images/ref_img.png",0,24,13,6,1+offset,85) -- spd
+	gui.drawImageRegion("./images/ref_img.png",0,30,13,6,1+offset,95) -- lck
+	gui.drawImageRegion("./images/ref_img.png",0,36,13,6,1+offset,105) -- def
+	gui.drawImageRegion("./images/ref_img.png",0,42,13,6,1+offset,115) -- res
+	if (num_displayed_units > 0) then
+		CurrentUnitIndex = 3
+	else
+		CurrentUnitIndex = num_displayed_units+4
+	end
+	unitInfo = UnitsLut[CurrentUnits[CurrentUnitIndex]]
+	if (unitInfo[1] ~= '') then
+		gui.drawImage("./images/"..unitInfo[1]..".png", width-32+offset, 1)
+		local name_index = math.floor((tonumber(CurrentUnits[CurrentUnitIndex],16) - 142622000)/52)
+		gui.drawImageRegion("./images/ref_img.png",37,0 + name_index*6,32,6,width-32+offset,35) -- Name
+		gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[10]*6,9,6,width-32+offset + 10,45) -- lvl
+		gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[11]*6,9,6,width-32+offset + 4,55) -- hp
+		gui.drawImageRegion("./images/ref_img.png",22,126 + (unitInfo[26])*6,15,5,width-32+offset + 13,55) -- hp avg
+		gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[12]*6,9,6,width-32+offset + 4,65) -- str
+		gui.drawImageRegion("./images/ref_img.png",22,126 + (unitInfo[27])*6,15,5,width-32+offset + 13,65) -- str avg
+		gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[13]*6,9,6,width-32+offset + 4,75) -- skl
+		gui.drawImageRegion("./images/ref_img.png",22,126 + (unitInfo[28])*6,15,5,width-32+offset + 13,75) -- skl avg
+		gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[14]*6,9,6,width-32+offset + 4,85) -- spd
+		gui.drawImageRegion("./images/ref_img.png",22,126 + (unitInfo[29])*6,15,5,width-32+offset + 13,85) -- spd avg
+		gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[15]*6,9,6,width-32+offset + 4,95) -- lck
+		gui.drawImageRegion("./images/ref_img.png",22,126 + (unitInfo[32])*6,15,5,width-32+offset + 13,95) -- lck avg
+		gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[16]*6,9,6,width-32+offset + 4,105) -- def
+		gui.drawImageRegion("./images/ref_img.png",22,126 + (unitInfo[30])*6,15,5,width-32+offset + 13,105) -- def avg
+		gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[17]*6,9,6,width-32+offset + 4,115) -- res
+		gui.drawImageRegion("./images/ref_img.png",22,126 + (unitInfo[31])*6,15,5,width-32+offset + 13,115) -- res avg
+	end
+	if (num_displayed_units > 1 or num_displayed_units < -1) then
+		drawLine(width - 33 + offset, 0, width - 33 + offset, bufferheight, foreground_color, "emucore") -- vertical line at -66
+		if (num_displayed_units > 0) then
+			CurrentUnitIndex = 2
+		else
+			CurrentUnitIndex = num_displayed_units+5
+		end
+		unitInfo = UnitsLut[CurrentUnits[CurrentUnitIndex]]
+		if (unitInfo[1] ~= '') then
+			gui.drawImage("./images/"..unitInfo[1]..".png", width-65+offset, 1)
+			local name_index = math.floor((tonumber(CurrentUnits[CurrentUnitIndex],16) - 142622000)/52)
+			gui.drawImageRegion("./images/ref_img.png",37,0 + name_index*6,32,6,width-65+offset,35) -- Name
+			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[10]*6,9,6,width-65+offset + 10,45) -- lvl
+			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[11]*6,9,6,width-65+offset + 4,55) -- hp
+			gui.drawImageRegion("./images/ref_img.png",22,126 + (unitInfo[26])*6,15,5,width-65+offset + 13,55) -- hp avg
+			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[12]*6,9,6,width-65+offset + 4,65) -- str
+			gui.drawImageRegion("./images/ref_img.png",22,126 + (unitInfo[27])*6,15,5,width-65+offset + 13,65) -- str avg
+			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[13]*6,9,6,width-65+offset + 4,75) -- skl
+			gui.drawImageRegion("./images/ref_img.png",22,126 + (unitInfo[28])*6,15,5,width-65+offset + 13,75) -- skl avg
+			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[14]*6,9,6,width-65+offset + 4,85) -- spd
+			gui.drawImageRegion("./images/ref_img.png",22,126 + (unitInfo[29])*6,15,5,width-65+offset + 13,85) -- spd avg
+			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[15]*6,9,6,width-65+offset + 4,95) -- lck
+			gui.drawImageRegion("./images/ref_img.png",22,126 + (unitInfo[32])*6,15,5,width-65+offset + 13,95) -- lck avg
+			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[16]*6,9,6,width-65+offset + 4,105) -- def
+			gui.drawImageRegion("./images/ref_img.png",22,126 + (unitInfo[30])*6,15,5,width-65+offset + 13,105) -- def avg
+			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[17]*6,9,6,width-65+offset + 4,115) -- res
+			gui.drawImageRegion("./images/ref_img.png",22,126 + (unitInfo[31])*6,15,5,width-65+offset + 13,115) -- res avg
+		end
+	end
+	if (num_displayed_units > 2 or num_displayed_units < -2) then
+		drawLine(width - 66 +offset, 0, width - 66 +offset, bufferheight, foreground_color, "emucore") -- vertical line at -34
+		if (num_displayed_units > 0) then
+			CurrentUnitIndex = 1
+		else
+			CurrentUnitIndex = 3
+		end
+		unitInfo = UnitsLut[CurrentUnits[CurrentUnitIndex]]
+		if (unitInfo[1] ~= '') then
+			gui.drawImage("./images/"..unitInfo[1]..".png", width-98+offset, 1)
+			local name_index = math.floor((tonumber(CurrentUnits[CurrentUnitIndex],16) - 142622000)/52)
+			gui.drawImageRegion("./images/ref_img.png",37,0 + name_index*6,32,6,width-98+offset,35) -- Name
+			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[10]*6,9,6,width-98+offset + 10,45) -- lvl
+			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[11]*6,9,6,width-98+offset + 4,55) -- hp
+			gui.drawImageRegion("./images/ref_img.png",22,126 + (unitInfo[26])*6,15,5,width-98+offset + 13,55) -- hp avg
+			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[12]*6,9,6,width-98+offset + 4,65) -- str
+			gui.drawImageRegion("./images/ref_img.png",22,126 + (unitInfo[27])*6,15,5,width-98+offset + 13,65) -- str avg
+			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[13]*6,9,6,width-98+offset + 4,75) -- skl
+			gui.drawImageRegion("./images/ref_img.png",22,126 + (unitInfo[28])*6,15,5,width-98+offset + 13,75) -- skl avg
+			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[14]*6,9,6,width-98+offset + 4,85) -- spd
+			gui.drawImageRegion("./images/ref_img.png",22,126 + (unitInfo[29])*6,15,5,width-98+offset + 13,85) -- spd avg
+			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[15]*6,9,6,width-98+offset + 4,95) -- lck
+			gui.drawImageRegion("./images/ref_img.png",22,126 + (unitInfo[32])*6,15,5,width-98+offset + 13,95) -- lck avg
+			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[16]*6,9,6,width-98+offset + 4,105) -- def
+			gui.drawImageRegion("./images/ref_img.png",22,126 + (unitInfo[30])*6,15,5,width-98+offset + 13,105) -- def avg
+			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[17]*6,9,6,width-98+offset + 4,115) -- res
+			gui.drawImageRegion("./images/ref_img.png",22,126 + (unitInfo[31])*6,15,5,width-98+offset + 13,115) -- res avg
+		end
+	end
+end
+
+function draw_right()
+
+end
+
 -- gui.drawBox(int x, int y, int x2, int y2, [luacolor line = nil], [luacolor background = nil], [string surfacename = nil]) 
 -- gui.drawBox(0, 0, 110, bufferheight-1, "#A97060", "#532e21", "emucore")
 local origin = client.transformPoint(0, 0)
@@ -478,130 +618,31 @@ while true do
 				updateLUT_stage4()
 			end
 		end
-		
     end
-	
+
 	if (re_draw == 1) then
-		-- print("redrawing!!")
-		if (num_displayed_units == 3) then
-			width = 115
-		elseif num_displayed_units == 2 then
-			width = 82
+		if (num_displayed_units ~= 0) then
+			draw()
 		else
-			width = 49
-		end
-		if (last_num_displayed ~= num_displayed_units) then
-			client.SetGameExtraPadding(width, 0, 0, 0)
+			client.SetGameExtraPadding(0, 0, 0, 0)
 		end
 		last_num_displayed = num_displayed_units
-
-		drawBox(0, 0, width, bufferheight-1, foreground_color, background_color, "emucore")
-		drawLine(15, 0, 15, bufferheight, foreground_color, "emucore") -- vertical line at -98
-		
-		drawLine(0, 42, width, 42, foreground_color, "emucore") -- horizontal line at 42
-		drawLine(0, 52, width, 52, foreground_color, "emucore") -- horizontal line at 52
-		drawLine(0, 62, width, 62, foreground_color, "emucore") -- horizontal line at 62
-		drawLine(0, 72, width, 72, foreground_color, "emucore") -- horizontal line at 72
-		drawLine(0, 82, width, 82, foreground_color, "emucore") -- horizontal line at 82
-		drawLine(0, 92, width, 92, foreground_color, "emucore") -- horizontal line at 92
-		drawLine(0, 102, width, 102, foreground_color, "emucore") -- horizontal line at 102
-		drawLine(0, 112, width, 112, foreground_color, "emucore") -- horizontal line at 112
-		
-		-- gui.drawImage("./images/Ephraim.png", 17, 1)
-		gui.drawImageRegion("./images/ref_img.png",0,0,13,6,1,45) -- lvl
-		gui.drawImageRegion("./images/ref_img.png",0,6,13,6,1,55) -- hp
-		gui.drawImageRegion("./images/ref_img.png",0,12,13,6,1,65) -- str
-		gui.drawImageRegion("./images/ref_img.png",0,18,13,6,1,75) -- skl
-		gui.drawImageRegion("./images/ref_img.png",0,24,13,6,1,85) -- spd
-		gui.drawImageRegion("./images/ref_img.png",0,30,13,6,1,95) -- lck
-		gui.drawImageRegion("./images/ref_img.png",0,36,13,6,1,105) -- def
-		gui.drawImageRegion("./images/ref_img.png",0,42,13,6,1,115) -- res
-		unitInfo = UnitsLut[CurrentUnits[3]]
-		if (unitInfo[1] ~= '') then
-			gui.drawImage("./images/"..unitInfo[1]..".png", width-33, 1)
-			local name_index = math.floor((tonumber(CurrentUnits[3],16) - 142622000)/52)
-			gui.drawImageRegion("./images/ref_img.png",37,0 + name_index*6,32,6,width-33,35) -- Name
-			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[10]*6,9,6,width-34 + 9,45) -- lvl
-			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[11]*6,9,6,width-33 + 4,55) -- hp
-			gui.drawImageRegion("./images/ref_img.png",22,125 + (unitInfo[26])*6,15,6,width-33 + 13,55) -- hp avg
-			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[12]*6,9,6,width-33 + 4,65) -- str
-			gui.drawImageRegion("./images/ref_img.png",22,125 + (unitInfo[27])*6,15,6,width-33 + 13,65) -- str avg
-			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[13]*6,9,6,width-33 + 4,75) -- skl
-			gui.drawImageRegion("./images/ref_img.png",22,125 + (unitInfo[28])*6,15,6,width-33 + 13,75) -- skl avg
-			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[14]*6,9,6,width-33 + 4,85) -- spd
-			gui.drawImageRegion("./images/ref_img.png",22,125 + (unitInfo[29])*6,15,6,width-33 + 13,85) -- spd avg
-			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[15]*6,9,6,width-33 + 4,95) -- lck
-			gui.drawImageRegion("./images/ref_img.png",22,125 + (unitInfo[32])*6,15,6,width-33 + 13,95) -- lck avg
-			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[16]*6,9,6,width-33 + 4,105) -- def
-			gui.drawImageRegion("./images/ref_img.png",22,125 + (unitInfo[30])*6,15,6,width-33 + 13,105) -- def avg
-			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[17]*6,9,6,width-33 + 4,115) -- res
-			gui.drawImageRegion("./images/ref_img.png",22,125 + (unitInfo[31])*6,15,6,width-33 + 13,115) -- res avg
-		end
-		if (num_displayed_units > 1) then
-			drawLine(48, 0, 48, bufferheight, foreground_color, "emucore") -- vertical line at -66
-			unitInfo = UnitsLut[CurrentUnits[2]]
-			if (unitInfo[1] ~= '') then
-				gui.drawImage("./images/"..unitInfo[1]..".png", width-67, 1)
-				local name_index = math.floor((tonumber(CurrentUnits[2],16) - 142622000)/52)
-				gui.drawImageRegion("./images/ref_img.png",37,0 + name_index*6,32,6,width-65,35) -- Name
-				gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[10]*6,9,6,width-66 + 9,45) -- lvl
-				gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[11]*6,9,6,width-65 + 4,55) -- hp
-				gui.drawImageRegion("./images/ref_img.png",22,125 + (unitInfo[26])*6,15,6,width-65 + 13,55) -- hp avg
-				gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[12]*6,9,6,width-65 + 4,65) -- str
-				gui.drawImageRegion("./images/ref_img.png",22,125 + (unitInfo[27])*6,15,6,width-65 + 13,65) -- str avg
-				gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[13]*6,9,6,width-65 + 4,75) -- skl
-				gui.drawImageRegion("./images/ref_img.png",22,125 + (unitInfo[28])*6,15,6,width-65 + 13,75) -- skl avg
-				gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[14]*6,9,6,width-65 + 4,85) -- spd
-				gui.drawImageRegion("./images/ref_img.png",22,125 + (unitInfo[29])*6,15,6,width-65 + 13,85) -- spd avg
-				gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[15]*6,9,6,width-65 + 4,95) -- lck
-				gui.drawImageRegion("./images/ref_img.png",22,125 + (unitInfo[32])*6,15,6,width-65 + 13,95) -- lck avg
-				gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[16]*6,9,6,width-65 + 4,105) -- def
-				gui.drawImageRegion("./images/ref_img.png",22,125 + (unitInfo[30])*6,15,6,width-65 + 13,105) -- def avg
-				gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[17]*6,9,6,width-65 + 4,115) -- res
-				gui.drawImageRegion("./images/ref_img.png",22,125 + (unitInfo[31])*6,15,6,width-65 + 13,115) -- res avg
-			end
-		end
-		if (num_displayed_units > 2) then
-			drawLine(81, 0, 81, bufferheight, foreground_color, "emucore") -- vertical line at -34
-			unitInfo = UnitsLut[CurrentUnits[1]]
-			if (unitInfo[1] ~= '') then
-				gui.drawImage("./images/"..unitInfo[1]..".png", width-99, 1)
-				local name_index = math.floor((tonumber(CurrentUnits[1],16) - 142622000)/52)
-				gui.drawImageRegion("./images/ref_img.png",37,0 + name_index*6,32,6,width-97,35) -- Name
-				gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[10]*6,9,6,width-98 + 9,45) -- lvl
-				gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[11]*6,9,6,width-97 + 4,55) -- hp
-				gui.drawImageRegion("./images/ref_img.png",22,125 + (unitInfo[26])*6,15,6,width-97 + 13,55) -- hp avg
-				gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[12]*6,9,6,width-97 + 4,65) -- str
-				gui.drawImageRegion("./images/ref_img.png",22,125 + (unitInfo[27])*6,15,6,width-97 + 13,65) -- str avg
-				gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[13]*6,9,6,width-97 + 4,75) -- skl
-				gui.drawImageRegion("./images/ref_img.png",22,125 + (unitInfo[28])*6,15,6,width-97 + 13,75) -- skl avg
-				gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[14]*6,9,6,width-97 + 4,85) -- spd
-				gui.drawImageRegion("./images/ref_img.png",22,125 + (unitInfo[29])*6,15,6,width-97 + 13,85) -- spd avg
-				gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[15]*6,9,6,width-97 + 4,95) -- lck
-				gui.drawImageRegion("./images/ref_img.png",22,125 + (unitInfo[32])*6,15,6,width-97 + 13,95) -- lck avg
-				gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[16]*6,9,6,width-97 + 4,105) -- def
-				gui.drawImageRegion("./images/ref_img.png",22,125 + (unitInfo[30])*6,15,6,width-97 + 13,105) -- def avg
-				gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[17]*6,9,6,width-97 + 4,115) -- res
-				gui.drawImageRegion("./images/ref_img.png",22,125 + (unitInfo[31])*6,15,6,width-97 + 13,115) -- res avg
-			end
-		end
 		re_draw = 0
 	end
 	
-	pos = client.transformPoint(1, bufferheight-7)
 	checkForUserInput()
 	if memory.readbyte(phaseMap[currentGame]) == 0 then
 		advanceRNG()
 		userInput = input.get()
 		checkForUserInput()
 		-- turn into a draw box?
-		gui.text(0, pos.y, "ACTIVE", 0xFF00FF40)
+		gui.text(0, 0, "ACTIVE", 0xFF00FF40)
 		if displayRNG then
 			printRNG(numDisplayedRNs)
 		end
 		-- emu.frameadvance()
 	else
-		gui.text(0, pos.y, "PAUSED", "red")
+		gui.text(2, 2, "PAUSED", "red")
 	end
 	if displayRNG then
 		printRNG(numDisplayedRNs)
