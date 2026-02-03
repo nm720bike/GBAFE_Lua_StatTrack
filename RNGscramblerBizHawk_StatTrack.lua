@@ -1,9 +1,3 @@
-math.randomseed(os.time())
-local RNGBase = 0x03000000
-local lastSeenRNG = {memory.read_u16_le(RNGBase+4), memory.read_u16_le(RNGBase+2), memory.read_u16_le(RNGBase)}
-local numDisplayedRNs = 20
-local superRNToRNConversionDivisor = 655.36
-local gameID = ""
 gui.use_surface("emucore")
 local bufferwidth = client.bufferwidth()
 local bufferheight = client.bufferheight()
@@ -25,27 +19,6 @@ local displayRNG = false
 local current_color = 0
 local background_color = "#532e21"
 local foreground_color = "#A97060"
-
--- Read consecutive values from the ROM to find a special string (ex/ FIREEMBLEM6.AFEJ01) used to distinguish between games
-for i = 0, 18, 1 do
-	gameID = gameID..memory.readbyte(0x080000A0 + i)
-end
-
-local gameIDMap = {
-	['70738269697766766977540657069744849150'] = "Sealed Sword J",
-	['70738269697766766977690656955694849150'] = "Blazing Sword U",
-	['70738269697766766977550656955744849150'] = "Blazing Sword J",
-	['707382696977667669775069666956694849150'] = "Sacred Stones U",
-	['70738269697766766977560666956744849150'] = "Sacred Stones J"
-}
-
-local phaseMap = {
-	['Sealed Sword J'] = 0x0202AA57,
-	['Blazing Sword U'] = 0x0202BC07,
-	['Blazing Sword J'] = 0x0202BC03,
-	['Sacred Stones U'] = 0x0202BCFF,
-	['Sacred Stones J'] = 0x0202BCFB
-}
 
 local color_arr = {
 	[0] = {"#532e21", "#A97060"},
@@ -102,83 +75,12 @@ local UnitsLut = {
 local CurrentUnits = {'testtest', 'testtest', 'testtest'}
 
 heldDown = {
-	['R'] = false, 
 	['Period'] = false,
 	['Comma'] = false,
 	['Slash'] = false
 }
 
-currentGame = gameIDMap[gameID]
-print("Current game: "..currentGame)
-
-function superRNToRN(srn)
-	return math.floor(srn/superRNToRNConversionDivisor)
-end
-
-function nextSuperRN(r1, r2, r3)
-	-- Given three sequential RNG values, generate a fourth
-	return (((((r3 >> 5) ~ (r2 << 11)) ~ (r1 << 1)) ~ (r2 >> 15)) & 0xFFFF)
-end
-
-function printRNG(n)
-	-- Print n entries of the RNG table
-	RNGTable = RNGSimulate(n)
-	-- Print each RNG value
-	for i=1,n do
-		gui.text(client.screenwidth() - 21, 16*(i-1), superRNToRN(RNGTable[i]), "white")
-	end
-end
-
-function RNGSimulate(n)
-	-- Generate n entries of the RNG table (including the 3 RNs used for the RNG seed)
-	local result = { memory.read_u16_le(RNGBase+4), memory.read_u16_le(RNGBase+2), memory.read_u16_le(RNGBase) }
-	advanceRNGTable(result,3)
-	for i = 4, n do
-		result[i] = nextSuperRN(result[i-3],result[i-2],result[i-1])
-	end
-	return result
-end
-
-function advanceRNGTable(RNGTable,n)
-	if n == 0 then
-		return RNGTable
-	end
-	for i = 1, math.abs(n), 1 do
-		local nextRN
-		if n > 0 then
-			nextRN = nextSuperRN(RNGTable[#RNGTable-2], RNGTable[#RNGTable-1], RNGTable[#RNGTable])
-			for j = 1, #RNGTable - 1, 1 do
-				RNGTable[j] = RNGTable[j+1]
-			end
-			RNGTable[#RNGTable] = nextRN
-		else
-			nextRN = previousSuperRN(RNGTable[1], RNGTable[2], RNGTable[3])
-			for j = #RNGTable, 2, -1 do
-				RNGTable[j] = RNGTable[j-1]
-			end
-			RNGTable[1] = nextRN
-		end
-	end
-	return RNGTable
-end
-
-function advanceRNG()
-	-- Identify the memory addresses of the first 4 RNG values
-	local RNG1 =  memory.read_u16_le(RNGBase+4)
-	local RNG2 =  memory.read_u16_le(RNGBase+2)
-	local RNG3 = memory.read_u16_le(RNGBase)
-	local RNG4 = nextSuperRN(RNG1, RNG2, RNG3)
-	-- Swap the values in RNG Seed 1,2,3 by the RNG values 2,3,4
-	memory.write_u16_le(RNGBase + 4, RNG2)
-	memory.write_u16_le(RNGBase + 2, RNG3)
-	memory.write_u16_le(RNGBase + 0, RNG4)
-end
-
 function checkForUserInput()
-	if userInput.R and heldDown['R'] == false then
-		-- help display on/off
-		displayRNG = not displayRNG
-	end
 	if userInput.Period and heldDown['Period'] == false then
 		-- Add one more unit
 		num_displayed_units = math.max(num_displayed_units - 1,-3)
@@ -564,7 +466,7 @@ function draw()
 end
 
 
-while true do
+function statTrackRoutine()
 	if (emu.framecount() & 0x7F) < 0x41 then
 		-- I want to do all 4 stages of updating the LUT for each character
 		--        0 0 0 0 0             0 0
@@ -602,20 +504,4 @@ while true do
 		last_num_displayed = num_displayed_units
 		re_draw = 0
 	end
-	
-	userInput = input.get()
-	checkForUserInput()
-	if memory.readbyte(phaseMap[currentGame]) == 0 then
-		advanceRNG()
-		gui.text(0, 0, "ACTIVE", 0xFF00FF40)
-		if displayRNG then
-			printRNG(numDisplayedRNs)
-		end
-	else
-		gui.text(2, 2, "PAUSED", "red")
-	end
-	if displayRNG then
-		printRNG(numDisplayedRNs)
-	end
-	emu.frameadvance()
 end
