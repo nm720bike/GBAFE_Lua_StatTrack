@@ -487,21 +487,21 @@ function draw()
 		gui.drawImage("./images/"..unitInfo[1]..".png", width-32+offset, 1)
 		local name_index = math.floor((tonumber(CurrentUnits[CurrentUnitIndex],16) - 142622000)/52)
 		gui.drawImageRegion("./images/ref_img.png",37,0 + name_index*6,32,6,width-32+offset,35) -- Name
-		gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[10]*6,9,6,width-32+offset + 10,45) -- lvl
-		gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[11]*6,9,6,width-32+offset + 4,55) -- hp
-		gui.drawImageRegion("./images/ref_img.png",22,126 + (unitInfo[26])*6,15,5,width-32+offset + 13,55) -- hp avg
-		gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[12]*6,9,6,width-32+offset + 4,65) -- str
-		gui.drawImageRegion("./images/ref_img.png",22,126 + (unitInfo[27])*6,15,5,width-32+offset + 13,65) -- str avg
-		gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[13]*6,9,6,width-32+offset + 4,75) -- skl
-		gui.drawImageRegion("./images/ref_img.png",22,126 + (unitInfo[28])*6,15,5,width-32+offset + 13,75) -- skl avg
-		gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[14]*6,9,6,width-32+offset + 4,85) -- spd
-		gui.drawImageRegion("./images/ref_img.png",22,126 + (unitInfo[29])*6,15,5,width-32+offset + 13,85) -- spd avg
-		gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[15]*6,9,6,width-32+offset + 4,95) -- lck
-		gui.drawImageRegion("./images/ref_img.png",22,126 + (unitInfo[32])*6,15,5,width-32+offset + 13,95) -- lck avg
-		gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[16]*6,9,6,width-32+offset + 4,105) -- def
-		gui.drawImageRegion("./images/ref_img.png",22,126 + (unitInfo[30])*6,15,5,width-32+offset + 13,105) -- def avg
-		gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[17]*6,9,6,width-32+offset + 4,115) -- res
-		gui.drawImageRegion("./images/ref_img.png",22,126 + (unitInfo[31])*6,15,5,width-32+offset + 13,115) -- res avg
+		gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[10]*6,9,6,width-31+offset + 10,45) -- lvl
+		gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[11]*6,9,6,width-31+offset + 4,55) -- hp
+		gui.drawImageRegion("./images/ref_img.png",22,125 + (unitInfo[26])*6,15,7,width-31+offset + 13,54) -- hp avg
+		gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[12]*6,9,6,width-31+offset + 4,65) -- str
+		gui.drawImageRegion("./images/ref_img.png",22,125 + (unitInfo[27])*6,15,7,width-31+offset + 13,64) -- str avg
+		gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[13]*6,9,6,width-31+offset + 4,75) -- skl
+		gui.drawImageRegion("./images/ref_img.png",22,125 + (unitInfo[28])*6,15,7,width-31+offset + 13,74) -- skl avg
+		gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[14]*6,9,6,width-31+offset + 4,85) -- spd
+		gui.drawImageRegion("./images/ref_img.png",22,125 + (unitInfo[29])*6,15,7,width-31+offset + 13,84) -- spd avg
+		gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[15]*6,9,6,width-31+offset + 4,95) -- lck
+		gui.drawImageRegion("./images/ref_img.png",22,125 + (unitInfo[32])*6,15,7,width-31+offset + 13,94) -- lck avg
+		gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[16]*6,9,6,width-31+offset + 4,105) -- def
+		gui.drawImageRegion("./images/ref_img.png",22,125 + (unitInfo[30])*6,15,7,width-31+offset + 13,104) -- def avg
+		gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[17]*6,9,6,width-31+offset + 4,115) -- res
+		gui.drawImageRegion("./images/ref_img.png",22,125 + (unitInfo[31])*6,15,7,width-31+offset + 13,114) -- res avg
 	end
 	if (num_displayed_units > 1 or num_displayed_units < -1) then
 		drawLine(width - 33 + offset, 0, width - 33 + offset, bufferheight, foreground_color, "emucore") -- vertical line at -66
@@ -515,21 +515,21 @@ function draw()
 			gui.drawImage("./images/"..unitInfo[1]..".png", width-65+offset, 1)
 			local name_index = math.floor((tonumber(CurrentUnits[CurrentUnitIndex],16) - 142622000)/52)
 			gui.drawImageRegion("./images/ref_img.png",37,0 + name_index*6,32,6,width-65+offset,35) -- Name
-			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[10]*6,9,6,width-65+offset + 10,45) -- lvl
-			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[11]*6,9,6,width-65+offset + 4,55) -- hp
-			gui.drawImageRegion("./images/ref_img.png",22,126 + (unitInfo[26])*6,15,5,width-65+offset + 13,55) -- hp avg
-			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[12]*6,9,6,width-65+offset + 4,65) -- str
-			gui.drawImageRegion("./images/ref_img.png",22,126 + (unitInfo[27])*6,15,5,width-65+offset + 13,65) -- str avg
-			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[13]*6,9,6,width-65+offset + 4,75) -- skl
-			gui.drawImageRegion("./images/ref_img.png",22,126 + (unitInfo[28])*6,15,5,width-65+offset + 13,75) -- skl avg
-			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[14]*6,9,6,width-65+offset + 4,85) -- spd
-			gui.drawImageRegion("./images/ref_img.png",22,126 + (unitInfo[29])*6,15,5,width-65+offset + 13,85) -- spd avg
-			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[15]*6,9,6,width-65+offset + 4,95) -- lck
-			gui.drawImageRegion("./images/ref_img.png",22,126 + (unitInfo[32])*6,15,5,width-65+offset + 13,95) -- lck avg
-			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[16]*6,9,6,width-65+offset + 4,105) -- def
-			gui.drawImageRegion("./images/ref_img.png",22,126 + (unitInfo[30])*6,15,5,width-65+offset + 13,105) -- def avg
-			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[17]*6,9,6,width-65+offset + 4,115) -- res
-			gui.drawImageRegion("./images/ref_img.png",22,126 + (unitInfo[31])*6,15,5,width-65+offset + 13,115) -- res avg
+			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[10]*6,9,6,width-64+offset + 10,45) -- lvl
+			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[11]*6,9,6,width-64+offset + 4,55) -- hp
+			gui.drawImageRegion("./images/ref_img.png",22,125 + (unitInfo[26])*6,15,7,width-64+offset + 13,54) -- hp avg
+			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[12]*6,9,6,width-64+offset + 4,65) -- str
+			gui.drawImageRegion("./images/ref_img.png",22,125 + (unitInfo[27])*6,15,7,width-64+offset + 13,64) -- str avg
+			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[13]*6,9,6,width-64+offset + 4,75) -- skl
+			gui.drawImageRegion("./images/ref_img.png",22,125 + (unitInfo[28])*6,15,7,width-64+offset + 13,74) -- skl avg
+			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[14]*6,9,6,width-64+offset + 4,85) -- spd
+			gui.drawImageRegion("./images/ref_img.png",22,125 + (unitInfo[29])*6,15,7,width-64+offset + 13,84) -- spd avg
+			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[15]*6,9,6,width-64+offset + 4,95) -- lck
+			gui.drawImageRegion("./images/ref_img.png",22,125 + (unitInfo[32])*6,15,7,width-64+offset + 13,94) -- lck avg
+			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[16]*6,9,6,width-64+offset + 4,105) -- def
+			gui.drawImageRegion("./images/ref_img.png",22,125 + (unitInfo[30])*6,15,7,width-64+offset + 13,104) -- def avg
+			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[17]*6,9,6,width-64+offset + 4,115) -- res
+			gui.drawImageRegion("./images/ref_img.png",22,125 + (unitInfo[31])*6,15,7,width-64+offset + 13,114) -- res avg
 		end
 	end
 	if (num_displayed_units > 2 or num_displayed_units < -2) then
@@ -544,21 +544,21 @@ function draw()
 			gui.drawImage("./images/"..unitInfo[1]..".png", width-98+offset, 1)
 			local name_index = math.floor((tonumber(CurrentUnits[CurrentUnitIndex],16) - 142622000)/52)
 			gui.drawImageRegion("./images/ref_img.png",37,0 + name_index*6,32,6,width-98+offset,35) -- Name
-			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[10]*6,9,6,width-98+offset + 10,45) -- lvl
-			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[11]*6,9,6,width-98+offset + 4,55) -- hp
-			gui.drawImageRegion("./images/ref_img.png",22,126 + (unitInfo[26])*6,15,5,width-98+offset + 13,55) -- hp avg
-			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[12]*6,9,6,width-98+offset + 4,65) -- str
-			gui.drawImageRegion("./images/ref_img.png",22,126 + (unitInfo[27])*6,15,5,width-98+offset + 13,65) -- str avg
-			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[13]*6,9,6,width-98+offset + 4,75) -- skl
-			gui.drawImageRegion("./images/ref_img.png",22,126 + (unitInfo[28])*6,15,5,width-98+offset + 13,75) -- skl avg
-			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[14]*6,9,6,width-98+offset + 4,85) -- spd
-			gui.drawImageRegion("./images/ref_img.png",22,126 + (unitInfo[29])*6,15,5,width-98+offset + 13,85) -- spd avg
-			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[15]*6,9,6,width-98+offset + 4,95) -- lck
-			gui.drawImageRegion("./images/ref_img.png",22,126 + (unitInfo[32])*6,15,5,width-98+offset + 13,95) -- lck avg
-			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[16]*6,9,6,width-98+offset + 4,105) -- def
-			gui.drawImageRegion("./images/ref_img.png",22,126 + (unitInfo[30])*6,15,5,width-98+offset + 13,105) -- def avg
-			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[17]*6,9,6,width-98+offset + 4,115) -- res
-			gui.drawImageRegion("./images/ref_img.png",22,126 + (unitInfo[31])*6,15,5,width-98+offset + 13,115) -- res avg
+			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[10]*6,9,6,width-97+offset + 10,45) -- lvl
+			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[11]*6,9,6,width-97+offset + 4,55) -- hp
+			gui.drawImageRegion("./images/ref_img.png",22,125 + (unitInfo[26])*6,15,7,width-97+offset + 13,54) -- hp avg
+			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[12]*6,9,6,width-97+offset + 4,65) -- str
+			gui.drawImageRegion("./images/ref_img.png",22,125 + (unitInfo[27])*6,15,7,width-97+offset + 13,64) -- str avg
+			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[13]*6,9,6,width-97+offset + 4,75) -- skl
+			gui.drawImageRegion("./images/ref_img.png",22,125 + (unitInfo[28])*6,15,7,width-97+offset + 13,74) -- skl avg
+			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[14]*6,9,6,width-97+offset + 4,85) -- spd
+			gui.drawImageRegion("./images/ref_img.png",22,125 + (unitInfo[29])*6,15,7,width-97+offset + 13,84) -- spd avg
+			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[15]*6,9,6,width-97+offset + 4,95) -- lck
+			gui.drawImageRegion("./images/ref_img.png",22,125 + (unitInfo[32])*6,15,7,width-97+offset + 13,94) -- lck avg
+			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[16]*6,9,6,width-97+offset + 4,105) -- def
+			gui.drawImageRegion("./images/ref_img.png",22,125 + (unitInfo[30])*6,15,7,width-97+offset + 13,104) -- def avg
+			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[17]*6,9,6,width-97+offset + 4,115) -- res
+			gui.drawImageRegion("./images/ref_img.png",22,125 + (unitInfo[31])*6,15,7,width-97+offset + 13,114) -- res avg
 		end
 	end
 end
