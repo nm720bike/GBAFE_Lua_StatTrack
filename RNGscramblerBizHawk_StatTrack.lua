@@ -23,8 +23,8 @@ local lastRNGPosition = 0
 local userInput = input.get()
 local displayRNG = false
 local current_color = 0
-local background_color = "#532e21"
-local foreground_color = "#A97060"
+local character_rotater = 0
+
 
 -- Read consecutive values from the ROM to find a special string (ex/ FIREEMBLEM6.AFEJ01) used to distinguish between games
 for i = 0, 18, 1 do
@@ -47,6 +47,11 @@ local phaseMap = {
 	['Sacred Stones J'] = 0x0202BCFB
 }
 
+local baseAddressMap = {
+	['Sealed Sword J'] = 0x202AB78,
+	['Sacred Stones U'] = 0x0202BE4C
+}
+
 local color_arr = {
 	[0] = {"#532e21", "#A97060"},
 	[1] = {"#252153", "#6660a9"},
@@ -54,62 +59,74 @@ local color_arr = {
 	[3] = {"#255321", "#66a960"},
 	[4] = {"#214253", "#6091a9"},
 	[5] = {"#532121", "#a96060"}
-	
 }
+local background_color = color_arr[0][1]
+local foreground_color = color_arr[0][2]
 
+currentGame = gameIDMap[gameID]
+print("Current game: "..currentGame)
 
 -- Unit info is displayed as [ID] = {name, b_lvl, b_hp, b_str, b_skl, b_spd, b_def, b_res, b_lck, c_lvl, c_hp, c_str, c_skl, c_spd, c_def, c_res, c_lck, hp_g, str_g, skl_g, spd_g, def_g,  res_g, lck_g, pp_lvl, avg_hp, avg_str, avg_skl, avg_spd, avg_def, avg_res, avg_lck, total_lvls, promoted, ppp_lvl}
 --									[01,    02,    03,    04,    05,    06,    07,    08,    09,   10,    11,    12,    13,    14,    15,    16,    17,   18,    19,    20,   21,     22,    23,    24,    25,     26,      27,      28,      29,      30,       31,      32       33,         34,       35]
 -- b_* = base stat. c_* = current stat. *_g = growth. avg_* = amount +- avg
-local UnitsLut = {
-	['8803D64'] = {"Eirika",	01,	16,	04,	08,	09,	03,	01,	05, 0, 0, 0, 0, 0, 0, 0, 0, 0.70, 0.40, 0.60, 0.60,0.30, 0.30, 0.60, 01, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-	['8803D98'] = {"Seth",		01,	30,	14,	13,	12,	11,	08,	13, 0, 0, 0, 0, 0, 0, 0, 0, 0.90, 0.50, 0.45, 0.45,0.40, 0.30, 0.25, 00, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-	['8803E00'] = {"Franz",		01,	20,	07,	05,	07,	06,	01,	02, 0, 0, 0, 0, 0, 0, 0, 0, 0.80, 0.40, 0.40, 0.50,0.25, 0.20, 0.40, 01, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-	['8803DCC'] = {"Gilliam",	04,	25,	09,	06,	03,	09,	03,	03, 0, 0, 0, 0, 0, 0, 0, 0, 0.90, 0.45, 0.35, 0.30,0.55, 0.20, 0.30, 04, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-	['8803E68'] = {"Vanessa",	01,	17,	05,	07,	11,	06,	05,	04, 0, 0, 0, 0, 0, 0, 0, 0, 0.70, 0.40, 0.50, 0.40,0.25, 0.25, 0.20, 01, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-	['8803E34'] = {"Moulder",	03,	20,	04,	06,	09,	02,	05,	01, 0, 0, 0, 0, 0, 0, 0, 0, 0.50, 0.35, 0.55, 0.60,0.20, 0.30, 0.50, 03, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-	['8803E9C'] = {"Ross",		01,	15,	05,	02,	03,	03,	00,	08, 0, 0, 0, 0, 0, 0, 0, 0, 0.70, 0.50, 0.35, 0.30,0.25, 0.20, 0.40, 00, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-	['8803F38'] = {"Garcia",	04,	28,	08,	07,	07,	05,	01,	03, 0, 0, 0, 0, 0, 0, 0, 0, 0.80, 0.65, 0.40, 0.20,0.25, 0.15, 0.40, 04, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-	['8803ED0'] = {"Neimi",		01,	17,	04,	05,	06,	03,	02,	04, 0, 0, 0, 0, 0, 0, 0, 0, 0.55, 0.45, 0.50, 0.60,0.15, 0.35, 0.50, 01, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-	['8803F04'] = {"Colm",		02,	18,	04,	04,	10,	03,	01,	08, 0, 0, 0, 0, 0, 0, 0, 0, 0.75, 0.40, 0.40, 0.65,0.25, 0.20, 0.45, 02, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-	['880410C'] = {"Artur",		02,	19,	06,	06,	08,	02,	06,	02, 0, 0, 0, 0, 0, 0, 0, 0, 0.55, 0.50, 0.50, 0.40,0.15, 0.55, 0.25, 02, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-	['8803FA0'] = {"Lute",		01,	17,	06,	06,	07,	03,	05,	08, 0, 0, 0, 0, 0, 0, 0, 0, 0.45, 0.65, 0.30, 0.45,0.15, 0.40, 0.45, 01, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-	['8803FD4'] = {"Natasha",	01,	18,	02,	04,	08,	02,	06,	06, 0, 0, 0, 0, 0, 0, 0, 0, 0.50, 0.60, 0.25, 0.40,0.15, 0.55, 0.60, 01, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-	['88043B0'] = {"Joshua",	05,	24,	08,	13,	14,	05,	02,	07, 0, 0, 0, 0, 0, 0, 0, 0, 0.80, 0.35, 0.55, 0.55,0.20, 0.20, 0.30, 05, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-	['880403C'] = {"Ephraim",	04,	23,	08,	09,	11,	07,	02,	08, 0, 0, 0, 0, 0, 0, 0, 0, 0.80, 0.55, 0.55, 0.45,0.35, 0.25, 0.50, 04, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-	['8804070'] = {"Forde",		06,	24,	07,	08,	08,	08,	02,	07, 0, 0, 0, 0, 0, 0, 0, 0, 0.85, 0.40, 0.50, 0.45,0.20, 0.25, 0.35, 06, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-	['88040A4'] = {"Kyle",		05,	25,	09,	06,	07,	09,	01,	06, 0, 0, 0, 0, 0, 0, 0, 0, 0.90, 0.50, 0.40, 0.40,0.25, 0.20, 0.20, 05, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-	['8804A98'] = {"Orson",		03,	34,	15,	13,	11,	13,	07,	04, 0, 0, 0, 0, 0, 0, 0, 0, 0.80, 0.55, 0.45, 0.40,0.45, 0.30, 0.25, 00, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-	['8804418'] = {"Tana",		04,	20,	07,	09,	13,	06,	07,	08, 0, 0, 0, 0, 0, 0, 0, 0, 0.65, 0.45, 0.40, 0.65,0.20, 0.25, 0.60, 04, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-	['88040D8'] = {"Amelia",	01,	16,	04,	03,	04,	02,	03,	06, 0, 0, 0, 0, 0, 0, 0, 0, 0.60, 0.35, 0.40, 0.40,0.30, 0.15, 0.50, 00, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-	['8803F6C'] = {"Innes",		01,	31,	14,	13,	15,	10,	09,	14, 0, 0, 0, 0, 0, 0, 0, 0, 0.75, 0.40, 0.40, 0.45,0.20, 0.25, 0.45, 00, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-	['8804140'] = {"Gerik",		10,	32,	14,	13,	13,	10,	04,	08, 0, 0, 0, 0, 0, 0, 0, 0, 0.90, 0.45, 0.40, 0.30,0.35, 0.25, 0.30, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-	['8804174'] = {"Tethys",	01,	18,	01,	02,	12,	05,	04,	10, 0, 0, 0, 0, 0, 0, 0, 0, 0.85, 0.05, 0.10, 0.70,0.30, 0.75, 0.80, 01, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-	['88041A8'] = {"Marisa",	05,	23,	07,	12,	13,	04,	03,	09, 0, 0, 0, 0, 0, 0, 0, 0, 0.75, 0.30, 0.55, 0.60,0.15, 0.25, 0.50, 05, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-	['8804244'] = {"L\'Arachel",03,	18,	06,	06,	10,	05,	08,	12, 0, 0, 0, 0, 0, 0, 0, 0, 0.45, 0.50, 0.45, 0.45,0.15, 0.50, 0.65, 03, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-	['8804278'] = {"Dozla",		01,	43,	16,	11,	09,	11,	06,	04, 0, 0, 0, 0, 0, 0, 0, 0, 0.85, 0.50, 0.35, 0.40,0.30, 0.25, 0.30, 00, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-	['88041DC'] = {"Saleh",		01,	30,	16,	18,	14,	08,	13,	11, 0, 0, 0, 0, 0, 0, 0, 0, 0.50, 0.30, 0.25, 0.40,0.30, 0.35, 0.40, 00, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-	['8804210'] = {"Ewan",		01,	15,	03,	02,	05,	00,	03,	05, 0, 0, 0, 0, 0, 0, 0, 0, 0.50, 0.45, 0.40, 0.35,0.15, 0.40, 0.50, 00, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-	['8804008'] = {"Cormag",	09,	30,	14,	09,	10,	12,	02,	04, 0, 0, 0, 0, 0, 0, 0, 0, 0.85, 0.55, 0.40, 0.45,0.25, 0.15, 0.35, 09, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-	['88042E0'] = {"Rennac",	01,	28,	10,	16,	17,	09,	11,	05, 0, 0, 0, 0, 0, 0, 0, 0, 0.65, 0.25, 0.45, 0.60,0.25, 0.30, 0.25, 00, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-	['8804314'] = {"Duessel",	08,	41,	17,	12,	12,	17,	09,	08, 0, 0, 0, 0, 0, 0, 0, 0, 0.85, 0.55, 0.40, 0.30,0.45, 0.30, 0.20, 00, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-	['880437C'] = {"Knoll",		10,	22,	13,	09,	08,	02,	10,	00, 0, 0, 0, 0, 0, 0, 0, 0, 0.70, 0.50, 0.40, 0.35,0.10, 0.45, 0.20, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-	['8804348'] = {"Myrrh",		01,	15,	03,	01,	05,	02,	07,	03, 0, 0, 0, 0, 0, 0, 0, 0, 1.30, 0.90, 0.85, 0.65,1.50, 0.30, 0.30, 01, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-	['88043E4'] = {"Syrene",	01,	27,	12,	13,	15,	10,	12,	12, 0, 0, 0, 0, 0, 0, 0, 0, 0.70, 0.40, 0.50, 0.60,0.20, 0.50, 0.30, 00, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-	['testtest'] = {"",			00,	00,	00,	00,	00,	00,	00,	00, 0, 0, 0, 0, 0, 0, 0, 0, 0.00, 0.00, 0.00, 0.00,0.00, 0.00, 0.00, 00, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
-}
+local UnitsLut = {}
+if currentGame == 'Sealed Sword J' then
+	UnitsLut = {
+		[0x86076D0] = {"Roy",		01,	18,	05,	05,	07,	05,	00,	07, 0, 0, 0, 0, 0, 0, 0, 0, 0.80, 0.40, 0.50, 0.40,0.25, 0.30, 0.60, 01, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+		[0xbadcafe] = {"",			00,	00,	00,	00,	00,	00,	00,	00, 0, 0, 0, 0, 0, 0, 0, 0, 0.00, 0.00, 0.00, 0.00,0.00, 0.00, 0.00, 00, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+	} 
+else
+	UnitsLut = {
+		[0x8803D64] = {"Eirika",	01,	16,	04,	08,	09,	03,	01,	05, 0, 0, 0, 0, 0, 0, 0, 0, 0.70, 0.40, 0.60, 0.60,0.30, 0.30, 0.60, 01, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+		[0x8803D98] = {"Seth",		01,	30,	14,	13,	12,	11,	08,	13, 0, 0, 0, 0, 0, 0, 0, 0, 0.90, 0.50, 0.45, 0.45,0.40, 0.30, 0.25, 00, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+		[0x8803E00] = {"Franz",		01,	20,	07,	05,	07,	06,	01,	02, 0, 0, 0, 0, 0, 0, 0, 0, 0.80, 0.40, 0.40, 0.50,0.25, 0.20, 0.40, 01, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+		[0x8803DCC] = {"Gilliam",	04,	25,	09,	06,	03,	09,	03,	03, 0, 0, 0, 0, 0, 0, 0, 0, 0.90, 0.45, 0.35, 0.30,0.55, 0.20, 0.30, 04, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+		[0x8803E68] = {"Vanessa",	01,	17,	05,	07,	11,	06,	05,	04, 0, 0, 0, 0, 0, 0, 0, 0, 0.70, 0.40, 0.50, 0.40,0.25, 0.25, 0.20, 01, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+		[0x8803E34] = {"Moulder",	03,	20,	04,	06,	09,	02,	05,	01, 0, 0, 0, 0, 0, 0, 0, 0, 0.50, 0.35, 0.55, 0.60,0.20, 0.30, 0.50, 03, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+		[0x8803E9C] = {"Ross",		01,	15,	05,	02,	03,	03,	00,	08, 0, 0, 0, 0, 0, 0, 0, 0, 0.70, 0.50, 0.35, 0.30,0.25, 0.20, 0.40, 00, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
+		[0x8803F38] = {"Garcia",	04,	28,	08,	07,	07,	05,	01,	03, 0, 0, 0, 0, 0, 0, 0, 0, 0.80, 0.65, 0.40, 0.20,0.25, 0.15, 0.40, 04, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+		[0x8803ED0] = {"Neimi",		01,	17,	04,	05,	06,	03,	02,	04, 0, 0, 0, 0, 0, 0, 0, 0, 0.55, 0.45, 0.50, 0.60,0.15, 0.35, 0.50, 01, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+		[0x8803F04] = {"Colm",		02,	18,	04,	04,	10,	03,	01,	08, 0, 0, 0, 0, 0, 0, 0, 0, 0.75, 0.40, 0.40, 0.65,0.25, 0.20, 0.45, 02, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+		[0x880410C] = {"Artur",		02,	19,	06,	06,	08,	02,	06,	02, 0, 0, 0, 0, 0, 0, 0, 0, 0.55, 0.50, 0.50, 0.40,0.15, 0.55, 0.25, 02, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+		[0x8803FA0] = {"Lute",		01,	17,	06,	06,	07,	03,	05,	08, 0, 0, 0, 0, 0, 0, 0, 0, 0.45, 0.65, 0.30, 0.45,0.15, 0.40, 0.45, 01, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+		[0x8803FD4] = {"Natasha",	01,	18,	02,	04,	08,	02,	06,	06, 0, 0, 0, 0, 0, 0, 0, 0, 0.50, 0.60, 0.25, 0.40,0.15, 0.55, 0.60, 01, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+		[0x88043B0] = {"Joshua",	05,	24,	08,	13,	14,	05,	02,	07, 0, 0, 0, 0, 0, 0, 0, 0, 0.80, 0.35, 0.55, 0.55,0.20, 0.20, 0.30, 05, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+		[0x880403C] = {"Ephraim",	04,	23,	08,	09,	11,	07,	02,	08, 0, 0, 0, 0, 0, 0, 0, 0, 0.80, 0.55, 0.55, 0.45,0.35, 0.25, 0.50, 04, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+		[0x8804070] = {"Forde",		06,	24,	07,	08,	08,	08,	02,	07, 0, 0, 0, 0, 0, 0, 0, 0, 0.85, 0.40, 0.50, 0.45,0.20, 0.25, 0.35, 06, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+		[0x88040A4] = {"Kyle",		05,	25,	09,	06,	07,	09,	01,	06, 0, 0, 0, 0, 0, 0, 0, 0, 0.90, 0.50, 0.40, 0.40,0.25, 0.20, 0.20, 05, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+		[0x8804A98] = {"Orson",		03,	34,	15,	13,	11,	13,	07,	04, 0, 0, 0, 0, 0, 0, 0, 0, 0.80, 0.55, 0.45, 0.40,0.45, 0.30, 0.25, 00, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+		[0x8804418] = {"Tana",		04,	20,	07,	09,	13,	06,	07,	08, 0, 0, 0, 0, 0, 0, 0, 0, 0.65, 0.45, 0.40, 0.65,0.20, 0.25, 0.60, 04, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+		[0x88040D8] = {"Amelia",	01,	16,	04,	03,	04,	02,	03,	06, 0, 0, 0, 0, 0, 0, 0, 0, 0.60, 0.35, 0.40, 0.40,0.30, 0.15, 0.50, 00, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
+		[0x8803F6C] = {"Innes",		01,	31,	14,	13,	15,	10,	09,	14, 0, 0, 0, 0, 0, 0, 0, 0, 0.75, 0.40, 0.40, 0.45,0.20, 0.25, 0.45, 00, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+		[0x8804140] = {"Gerik",		10,	32,	14,	13,	13,	10,	04,	08, 0, 0, 0, 0, 0, 0, 0, 0, 0.90, 0.45, 0.40, 0.30,0.35, 0.25, 0.30, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+		[0x8804174] = {"Tethys",	01,	18,	01,	02,	12,	05,	04,	10, 0, 0, 0, 0, 0, 0, 0, 0, 0.85, 0.05, 0.10, 0.70,0.30, 0.75, 0.80, 01, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+		[0x88041A8] = {"Marisa",	05,	23,	07,	12,	13,	04,	03,	09, 0, 0, 0, 0, 0, 0, 0, 0, 0.75, 0.30, 0.55, 0.60,0.15, 0.25, 0.50, 05, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+		[0x8804244] = {"L\'Arachel",03,	18,	06,	06,	10,	05,	08,	12, 0, 0, 0, 0, 0, 0, 0, 0, 0.45, 0.50, 0.45, 0.45,0.15, 0.50, 0.65, 03, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+		[0x8804278] = {"Dozla",		01,	43,	16,	11,	09,	11,	06,	04, 0, 0, 0, 0, 0, 0, 0, 0, 0.85, 0.50, 0.35, 0.40,0.30, 0.25, 0.30, 00, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+		[0x88041DC] = {"Saleh",		01,	30,	16,	18,	14,	08,	13,	11, 0, 0, 0, 0, 0, 0, 0, 0, 0.50, 0.30, 0.25, 0.40,0.30, 0.35, 0.40, 00, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+		[0x8804210] = {"Ewan",		01,	15,	03,	02,	05,	00,	03,	05, 0, 0, 0, 0, 0, 0, 0, 0, 0.50, 0.45, 0.40, 0.35,0.15, 0.40, 0.50, 00, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
+		[0x8804008] = {"Cormag",	09,	30,	14,	09,	10,	12,	02,	04, 0, 0, 0, 0, 0, 0, 0, 0, 0.85, 0.55, 0.40, 0.45,0.25, 0.15, 0.35, 09, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+		[0x88042E0] = {"Rennac",	01,	28,	10,	16,	17,	09,	11,	05, 0, 0, 0, 0, 0, 0, 0, 0, 0.65, 0.25, 0.45, 0.60,0.25, 0.30, 0.25, 00, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+		[0x8804314] = {"Duessel",	08,	41,	17,	12,	12,	17,	09,	08, 0, 0, 0, 0, 0, 0, 0, 0, 0.85, 0.55, 0.40, 0.30,0.45, 0.30, 0.20, 00, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+		[0x880437C] = {"Knoll",		10,	22,	13,	09,	08,	02,	10,	00, 0, 0, 0, 0, 0, 0, 0, 0, 0.70, 0.50, 0.40, 0.35,0.10, 0.45, 0.20, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+		[0x8804348] = {"Myrrh",		01,	15,	03,	01,	05,	02,	07,	03, 0, 0, 0, 0, 0, 0, 0, 0, 1.30, 0.90, 0.85, 0.65,1.50, 0.30, 0.30, 01, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+		[0x88043E4] = {"Syrene",	01,	27,	12,	13,	15,	10,	12,	12, 0, 0, 0, 0, 0, 0, 0, 0, 0.70, 0.40, 0.50, 0.60,0.20, 0.50, 0.30, 00, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+		[0xbadcafe] = {"",			00,	00,	00,	00,	00,	00,	00,	00, 0, 0, 0, 0, 0, 0, 0, 0, 0.00, 0.00, 0.00, 0.00,0.00, 0.00, 0.00, 00, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+	}
+end
 
-local CurrentUnits = {'testtest', 'testtest', 'testtest'}
+
+local CurrentUnits = {0xbadcafe, 0xbadcafe, 0xbadcafe}
 
 heldDown = {
 	['R'] = false, 
 	['Period'] = false,
 	['Comma'] = false,
-	['Slash'] = false
+	['Slash'] = false,
+	['L'] = false
 }
 
-currentGame = gameIDMap[gameID]
-print("Current game: "..currentGame)
+
 
 function superRNToRN(srn)
 	return math.floor(srn/superRNToRNConversionDivisor)
@@ -195,6 +212,10 @@ function checkForUserInput()
 		foreground_color = color_arr[current_color][2]
 		re_draw = 1
 	end
+	if userInput.L and heldDown['L'] == false then
+		character_rotater = (character_rotater - 1) % 3
+		re_draw = 1
+	end
 	for key, value in pairs(heldDown) do
 		heldDown[key] = true
 		if userInput[key] == nil then
@@ -223,15 +244,21 @@ local Cdata = {
 local unit_arr = {}
 local addr = 0
 
-local baseAddress = 0x0202BE4C
-function updateLUT(char_number, stage)
+local baseAddress = baseAddressMap[currentGame]
 
+local stat_mem_offset = 0
+local name_horiz_offset = 37
+local name_vertical_offset = 0x8803D30
+if currentGame == 'Sealed Sword J' then
+	stat_mem_offset = -2
+	name_horiz_offset = 69
+	name_vertical_offset = 0x8607688
 end
 
 function updateLUT_stage1(char_number) -- ~3us on average
 	addr = baseAddress + (char_number*0x48)
 	local Rom_unit = memory.read_u32_le(addr, "System Bus")
-	Cdata['lookupKey'] = string.format("%07X", Rom_unit)
+	Cdata['lookupKey'] = Rom_unit
 	unit_arr = UnitsLut[Cdata['lookupKey']]
 end
 
@@ -248,25 +275,25 @@ function updateLUT_stage2(char_number) -- ~7-15us on average
 	end
 	unit_arr[10] = lvl
 	Cdata['lvl'] = lvl
-	local maxHP = bytes[11]
+	local maxHP = bytes[11+stat_mem_offset]
 	Cdata['maxHP'] = maxHP
 	unit_arr[11] = maxHP
-	local str = bytes[13]
+	local str = bytes[13+stat_mem_offset]
 	Cdata['str'] = str
 	unit_arr[12] = str
-	local skl = bytes[14]
+	local skl = bytes[14+stat_mem_offset]
 	Cdata['skl'] = skl
 	unit_arr[13] = skl
-	local spd = bytes[15]
+	local spd = bytes[15+stat_mem_offset]
 	Cdata['spd'] = spd
 	unit_arr[14] = spd
-	local def = bytes[16]
+	local def = bytes[16+stat_mem_offset]
 	Cdata['def'] = def
 	unit_arr[15] = def
-	local res = bytes[17]
+	local res = bytes[17+stat_mem_offset]
 	Cdata['res'] = res
 	unit_arr[16] = res
-	local lck = bytes[18]
+	local lck = bytes[18+stat_mem_offset]
 	Cdata['lck'] = lck
 	unit_arr[17] = lck
 end
@@ -478,15 +505,15 @@ function draw()
 	gui.drawImageRegion("./images/ref_img.png",0,36,13,6,1+offset,105) -- def
 	gui.drawImageRegion("./images/ref_img.png",0,42,13,6,1+offset,115) -- res
 	if (num_displayed_units > 0) then
-		CurrentUnitIndex = 3
+		CurrentUnitIndex = (2 + character_rotater) % 3
 	else
-		CurrentUnitIndex = num_displayed_units+4
+		CurrentUnitIndex = (num_displayed_units+3 + character_rotater) % 3
 	end
-	unitInfo = UnitsLut[CurrentUnits[CurrentUnitIndex]]
+	unitInfo = UnitsLut[CurrentUnits[CurrentUnitIndex+1]]
 	if (unitInfo[1] ~= '') then
 		gui.drawImage("./images/"..unitInfo[1]..".png", width-32+offset, 1)
-		local name_index = math.floor((tonumber(CurrentUnits[CurrentUnitIndex],16) - 142622000)/52)
-		gui.drawImageRegion("./images/ref_img.png",37,0 + name_index*6,32,6,width-32+offset,35) -- Name
+		local name_index = math.floor((CurrentUnits[CurrentUnitIndex+1] - name_vertical_offset)/52)
+		gui.drawImageRegion("./images/ref_img.png",name_horiz_offset,0 + name_index*6,32,6,width-32+offset,35) -- Name
 		gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[10]*6,9,6,width-31+offset + 10,45) -- lvl
 		gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[11]*6,9,6,width-31+offset + 4,55) -- hp
 		gui.drawImageRegion("./images/ref_img.png",22,125 + (unitInfo[26])*6,15,7,width-31+offset + 13,54) -- hp avg
@@ -496,25 +523,25 @@ function draw()
 		gui.drawImageRegion("./images/ref_img.png",22,125 + (unitInfo[28])*6,15,7,width-31+offset + 13,74) -- skl avg
 		gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[14]*6,9,6,width-31+offset + 4,85) -- spd
 		gui.drawImageRegion("./images/ref_img.png",22,125 + (unitInfo[29])*6,15,7,width-31+offset + 13,84) -- spd avg
-		gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[15]*6,9,6,width-31+offset + 4,95) -- lck
+		gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[17]*6,9,6,width-31+offset + 4,95) -- lck
 		gui.drawImageRegion("./images/ref_img.png",22,125 + (unitInfo[32])*6,15,7,width-31+offset + 13,94) -- lck avg
-		gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[16]*6,9,6,width-31+offset + 4,105) -- def
+		gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[15]*6,9,6,width-31+offset + 4,105) -- def
 		gui.drawImageRegion("./images/ref_img.png",22,125 + (unitInfo[30])*6,15,7,width-31+offset + 13,104) -- def avg
-		gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[17]*6,9,6,width-31+offset + 4,115) -- res
+		gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[16]*6,9,6,width-31+offset + 4,115) -- res
 		gui.drawImageRegion("./images/ref_img.png",22,125 + (unitInfo[31])*6,15,7,width-31+offset + 13,114) -- res avg
 	end
 	if (num_displayed_units > 1 or num_displayed_units < -1) then
 		drawLine(width - 33 + offset, 0, width - 33 + offset, bufferheight, foreground_color, "emucore") -- vertical line at -66
 		if (num_displayed_units > 0) then
-			CurrentUnitIndex = 2
+			CurrentUnitIndex = (1 + character_rotater) % 3
 		else
-			CurrentUnitIndex = num_displayed_units+5
+			CurrentUnitIndex = (num_displayed_units+4 + character_rotater) % 3
 		end
-		unitInfo = UnitsLut[CurrentUnits[CurrentUnitIndex]]
+		unitInfo = UnitsLut[CurrentUnits[CurrentUnitIndex+1]]
 		if (unitInfo[1] ~= '') then
 			gui.drawImage("./images/"..unitInfo[1]..".png", width-65+offset, 1)
-			local name_index = math.floor((tonumber(CurrentUnits[CurrentUnitIndex],16) - 142622000)/52)
-			gui.drawImageRegion("./images/ref_img.png",37,0 + name_index*6,32,6,width-65+offset,35) -- Name
+			local name_index = math.floor((CurrentUnits[CurrentUnitIndex+1] - name_vertical_offset)/52)
+			gui.drawImageRegion("./images/ref_img.png",name_horiz_offset,0 + name_index*6,32,6,width-65+offset,35) -- Name
 			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[10]*6,9,6,width-64+offset + 10,45) -- lvl
 			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[11]*6,9,6,width-64+offset + 4,55) -- hp
 			gui.drawImageRegion("./images/ref_img.png",22,125 + (unitInfo[26])*6,15,7,width-64+offset + 13,54) -- hp avg
@@ -524,26 +551,26 @@ function draw()
 			gui.drawImageRegion("./images/ref_img.png",22,125 + (unitInfo[28])*6,15,7,width-64+offset + 13,74) -- skl avg
 			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[14]*6,9,6,width-64+offset + 4,85) -- spd
 			gui.drawImageRegion("./images/ref_img.png",22,125 + (unitInfo[29])*6,15,7,width-64+offset + 13,84) -- spd avg
-			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[15]*6,9,6,width-64+offset + 4,95) -- lck
+			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[17]*6,9,6,width-64+offset + 4,95) -- lck
 			gui.drawImageRegion("./images/ref_img.png",22,125 + (unitInfo[32])*6,15,7,width-64+offset + 13,94) -- lck avg
-			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[16]*6,9,6,width-64+offset + 4,105) -- def
+			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[15]*6,9,6,width-64+offset + 4,105) -- def
 			gui.drawImageRegion("./images/ref_img.png",22,125 + (unitInfo[30])*6,15,7,width-64+offset + 13,104) -- def avg
-			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[17]*6,9,6,width-64+offset + 4,115) -- res
+			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[16]*6,9,6,width-64+offset + 4,115) -- res
 			gui.drawImageRegion("./images/ref_img.png",22,125 + (unitInfo[31])*6,15,7,width-64+offset + 13,114) -- res avg
 		end
 	end
 	if (num_displayed_units > 2 or num_displayed_units < -2) then
 		drawLine(width - 66 +offset, 0, width - 66 +offset, bufferheight, foreground_color, "emucore") -- vertical line at -34
 		if (num_displayed_units > 0) then
-			CurrentUnitIndex = 1
+			CurrentUnitIndex = (0 + character_rotater) % 3
 		else
-			CurrentUnitIndex = 3
+			CurrentUnitIndex = (2 + character_rotater) % 3
 		end
-		unitInfo = UnitsLut[CurrentUnits[CurrentUnitIndex]]
+		unitInfo = UnitsLut[CurrentUnits[CurrentUnitIndex+1]]
 		if (unitInfo[1] ~= '') then
 			gui.drawImage("./images/"..unitInfo[1]..".png", width-98+offset, 1)
-			local name_index = math.floor((tonumber(CurrentUnits[CurrentUnitIndex],16) - 142622000)/52)
-			gui.drawImageRegion("./images/ref_img.png",37,0 + name_index*6,32,6,width-98+offset,35) -- Name
+			local name_index = math.floor((CurrentUnits[CurrentUnitIndex+1] - name_vertical_offset)/52)
+			gui.drawImageRegion("./images/ref_img.png",name_horiz_offset,0 + name_index*6,32,6,width-98+offset,35) -- Name
 			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[10]*6,9,6,width-97+offset + 10,45) -- lvl
 			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[11]*6,9,6,width-97+offset + 4,55) -- hp
 			gui.drawImageRegion("./images/ref_img.png",22,125 + (unitInfo[26])*6,15,7,width-97+offset + 13,54) -- hp avg
@@ -553,11 +580,11 @@ function draw()
 			gui.drawImageRegion("./images/ref_img.png",22,125 + (unitInfo[28])*6,15,7,width-97+offset + 13,74) -- skl avg
 			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[14]*6,9,6,width-97+offset + 4,85) -- spd
 			gui.drawImageRegion("./images/ref_img.png",22,125 + (unitInfo[29])*6,15,7,width-97+offset + 13,84) -- spd avg
-			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[15]*6,9,6,width-97+offset + 4,95) -- lck
+			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[17]*6,9,6,width-97+offset + 4,95) -- lck
 			gui.drawImageRegion("./images/ref_img.png",22,125 + (unitInfo[32])*6,15,7,width-97+offset + 13,94) -- lck avg
-			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[16]*6,9,6,width-97+offset + 4,105) -- def
+			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[15]*6,9,6,width-97+offset + 4,105) -- def
 			gui.drawImageRegion("./images/ref_img.png",22,125 + (unitInfo[30])*6,15,7,width-97+offset + 13,104) -- def avg
-			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[17]*6,9,6,width-97+offset + 4,115) -- res
+			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[16]*6,9,6,width-97+offset + 4,115) -- res
 			gui.drawImageRegion("./images/ref_img.png",22,125 + (unitInfo[31])*6,15,7,width-97+offset + 13,114) -- res avg
 		end
 	end
