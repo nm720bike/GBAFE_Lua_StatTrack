@@ -1,4 +1,7 @@
 math.randomseed(os.time())
+if _G.HasPromptedUser == nil then
+    _G.HasPromptedUser = false
+end
 local RNGBase = 0x03000000
 local lastSeenRNG = {memory.read_u16_le(RNGBase+4), memory.read_u16_le(RNGBase+2), memory.read_u16_le(RNGBase)}
 local numDisplayedRNs = 20
@@ -122,6 +125,7 @@ if currentGame == 'Sealed Sword J' then
 		[0x8607FA0] = {"Thea",		08, 22, 06, 08, 11, 07, 06, 03, 0, 0, 0, 0, 0, 0, 0, 0, 0.60, 0.40, 0.45, 0.55, 0.15, 0.20, 0.40, 08, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6, 2, 2, 2, 2, 2},
 		[0x8607FD0] = {"Shanna",	01, 17, 04, 06, 12, 06, 05, 05, 0, 0, 0, 0, 0, 0, 0, 0, 0.45, 0.30, 0.55, 0.60, 0.10, 0.25, 0.60, 01, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6, 2, 2, 2, 2, 2},
 		[0x8608000] = {"Zeiss",		07, 28, 14, 09, 08, 12, 02, 06, 0, 0, 0, 0, 0, 0, 0, 0, 0.80, 0.60, 0.50, 0.35, 0.25, 0.05, 0.20, 07, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 2, 2, 2, 2, 1},
+		-- Galle
 		[0x8608060] = {"Elphin",	01, 15, 01, 03, 10, 04, 01, 11, 0, 0, 0, 0, 0, 0, 0, 0, 0.80, 0.05, 0.05, 0.65, 0.25, 0.55, 0.65, 01, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 		[0x8608090] = {"Cath",		05, 16, 03, 07, 11, 02, 01, 08, 0, 0, 0, 0, 0, 0, 0, 0, 0.80, 0.40, 0.45, 0.85, 0.15, 0.20, 0.50, 05, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 		[0x86080C0] = {"Sophia",	01, 15, 06, 02, 04, 01, 08, 03, 0, 0, 0, 0, 0, 0, 0, 0, 0.60, 0.55, 0.40, 0.30, 0.20, 0.55, 0.20, 01, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 4, 2, 3, 2, 2},
@@ -180,7 +184,60 @@ else
 	}
 end
 
--- have some way to load in UnitLut parameters here
+-- have some way to load in UnitsLut parameters here
+
+event.onexit(function()
+    local file = io.open("session_data.csv", "w")
+    if file then
+		file:write("KEY,NAME,PP_LVL,PROMOTED,PPP_LVLS\n")
+		for key, unit_info in pairs(UnitsLut) do
+			-- print(key)
+			if (key ~= 0xbadcafe) then
+				file:write(key..","..unit_info[1]..","..unit_info[25]..","..unit_info[34]..","..unit_info[35].."\n")
+			end
+		end
+		-- do a for loop for all the characters and write the important data here
+		-- important data includes: pp_lvl [25], total_lvls [33], promoted [34], ppp_lvls [35]
+        -- file:write(table.concat(UnitsLut, "\n"))
+        file:close()
+    end
+end)
+
+local file_r = io.open("session_data.csv", "r")
+function loadSessionData()
+	if file_r then
+		for line in io.lines("session_data.csv") do
+			local columns = {}
+			for value in line:gmatch("([^,]+)") do
+				table.insert(columns, value)
+			end
+			if(columns[1] ~= 'KEY') then
+				key = tonumber(columns[1])
+				UnitsLut[key][25] = tonumber(columns[3])
+				UnitsLut[key][34] = tonumber(columns[4])
+				UnitsLut[key][35] = tonumber(columns[5])
+			end
+		end
+	end
+end
+
+--create prompt
+if file_r then
+	if emu.framecount() > 60 then
+		local form = forms.newform(350, 100, "Session Manager")
+		forms.label(form, "Would you like to load your previous session data?\rWARNING: Saying no will overwrite session_data.csv!", 20, 20, 310, 40)
+		forms.button(form, "Yes", function()
+			loadSessionData()
+			forms.destroy(form)
+		end, 60, 60, 100, 30)
+		forms.button(form, "No", function()
+			forms.destroy(form)
+		end, 190, 60, 100, 30)
+	else
+		loadSessionData()
+	end
+end
+
 
 local CurrentUnits = {0xbadcafe, 0xbadcafe, 0xbadcafe}
 
@@ -191,8 +248,6 @@ heldDown = {
 	['Slash'] = false,
 	['L'] = false
 }
-
-
 
 function superRNToRN(srn)
 	return math.floor(srn/superRNToRNConversionDivisor)
@@ -678,33 +733,33 @@ end
 
 
 while true do
-	if (emu.framecount() & 0x7F) < 0x41 then
-		-- I want to do all 4 stages of updating the LUT for each character
-		--        0 0 0 0 0             0 0
-		-- 5 bits for characters  2 bits for stages
-		-- emu.framecount < 2^8 (256)
-		-- max_char = 10010 00 = 0x41
-		-- 			  11111 00 = 0x7C (mask for character number)
-		-- lower bits are what state of calculations we're on
-		local stage = (emu.framecount() & 0x3) + 1
-		-- char number effects the offset in memory we want to read for the character
-		local char_number = (emu.framecount() & 0x7C) >> 2
-		if (stage == 1) then
-			updateLUT_stage1(char_number)
+	-- I want to do all 4 stages of updating the LUT for each character
+	--      0 0 0 0 0 0             0 0
+	-- 6 bits for characters  2 bits for stages
+	-- 6 bits lets us do 64 characters (just barely enough for FE6)
+	-- emu.framecount < 2^8 (256)
+	-- max_char = 1111 11 00 = 0xFC
+	-- 			  1111 11 00 = 0xFC (mask for character number)
+	-- lower bits are what state of calculations we're on
+	local stage = (emu.framecount() & 0x3) + 1
+	-- char number effects the offset in memory we want to read for the character
+	local char_number = (emu.framecount() & 0xFC) >> 2
+	if (stage == 1) then
+		-- this will populate Cdata['lookupKey']
+		updateLUT_stage1(char_number)
+	end
+	if UnitsLut[Cdata['lookupKey']] ~= nil then
+		--stage 2 is the longest stage but still takes less than ~15us which is very quick
+		if (stage == 2) then
+			updateLUT_stage2(char_number)
 		end
-		if UnitsLut[Cdata['lookupKey']] ~= nil then
-			--stage 2 is the longest stage but still takes less than ~15us which is very quick
-			if (stage == 2) then
-				updateLUT_stage2(char_number)
-			end
-			if (stage == 3) then
-				updateLUT_stage3()
-			end
-			if (stage == 4) then
-				updateLUT_stage4()
-			end
+		if (stage == 3) then
+			updateLUT_stage3()
 		end
-    end
+		if (stage == 4) then
+			updateLUT_stage4()
+		end
+	end
 
 	if (re_draw == 1) then
 		if (num_displayed_units ~= 0) then
