@@ -213,9 +213,11 @@ function loadSessionData()
 			end
 			if(columns[1] ~= 'KEY') then
 				key = tonumber(columns[1])
-				UnitsLut[key][25] = tonumber(columns[3])
-				UnitsLut[key][34] = tonumber(columns[4])
-				UnitsLut[key][35] = tonumber(columns[5])
+				if(UnitsLut[key] ~= nil) then
+					UnitsLut[key][25] = tonumber(columns[3])
+					UnitsLut[key][34] = tonumber(columns[4])
+					UnitsLut[key][35] = tonumber(columns[5])
+				end
 			end
 		end
 	end
