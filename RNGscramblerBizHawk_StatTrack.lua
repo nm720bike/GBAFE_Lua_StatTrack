@@ -428,7 +428,7 @@ function updateLUT_stage2(char_number) -- ~7-15us on average
 	unit_arr[17] = lck
 end
 
-function updateLUT_stage3() -- ~4us on average
+function updateLUT_stage3() -- probably 20+ us at this point
 	local promo_hp_gain = 0
 	local promo_str_gain = 0
 	local promo_skl_gain = 0
@@ -436,19 +436,27 @@ function updateLUT_stage3() -- ~4us on average
 	local promo_def_gain = 0
 	local promo_res_gain = 0
 	-- if level < pp_lvl, then we're a (somewhat) freshly promoted unit
-	
+
+	rom_class = memory.read_u32_le(addr+0x4, "System Bus")
+	if currentGame == 'Sealed Sword J' then
+		class_info_arr = memory.read_bytes_as_array(rom_class + 0x13, 6, "System Bus")
+	else
+		class_info_arr = memory.read_bytes_as_array(rom_class + 0x13, 21, "System Bus")
+	end
+	-- arr[1:6] is max stats
+	-- arr[16:21] is promotion gains (FE8)
 
 	if (unit_arr[35] ~= 0) then -- we're a trainee
 		if (Cdata['lookupKey'] == '8803E9C') then -- ross
 			if (ross_promo_added == 0 and lvl == 1 and unit_arr[35] == 10) then -- Ross just promoted, add growth to bases
-				rom_class = memory.read_u32_le(addr+0x4, "System Bus")
-				promo_gain_arr = memory.read_bytes_as_array(rom_class + 0x22, 6, "System Bus")
-				promo_hp_gain = promo_gain_arr[1]
-				promo_str_gain = promo_gain_arr[2]
-				promo_skl_gain = promo_gain_arr[3]
-				promo_spd_gain = promo_gain_arr[4]
-				promo_def_gain = promo_gain_arr[5]
-				promo_res_gain = promo_gain_arr[6]
+				-- rom_class = memory.read_u32_le(addr+0x4, "System Bus")
+				-- promo_gain_arr = memory.read_bytes_as_array(rom_class + 0x22, 6, "System Bus")
+				promo_hp_gain = class_info_arr[16]
+				promo_str_gain = class_info_arr[17]
+				promo_skl_gain = class_info_arr[18]
+				promo_spd_gain = class_info_arr[19]
+				promo_def_gain = class_info_arr[20]
+				promo_res_gain = class_info_arr[21]
 				unit_arr[3] = unit_arr[3] + promo_hp_gain
 				unit_arr[4] = unit_arr[4] + promo_str_gain
 				unit_arr[5] = unit_arr[5] + promo_skl_gain
@@ -467,14 +475,14 @@ function updateLUT_stage3() -- ~4us on average
 			end
 		elseif (Cdata['lookupKey'] == '88040D8') then -- amelia
 			if (amelia_promo_added == 0 and lvl == 1 and unit_arr[35] == 10) then -- Amelia just promoted, add growth to bases
-				rom_class = memory.read_u32_le(addr+0x4, "System Bus")
-				promo_gain_arr = memory.read_bytes_as_array(rom_class + 0x22, 6, "System Bus")
-				promo_hp_gain = promo_gain_arr[1]
-				promo_str_gain = promo_gain_arr[2]
-				promo_skl_gain = promo_gain_arr[3]
-				promo_spd_gain = promo_gain_arr[4]
-				promo_def_gain = promo_gain_arr[5]
-				promo_res_gain = promo_gain_arr[6]
+				-- rom_class = memory.read_u32_le(addr+0x4, "System Bus")
+				-- promo_gain_arr = memory.read_bytes_as_array(rom_class + 0x22, 6, "System Bus")
+				promo_hp_gain = class_info_arr[16]
+				promo_str_gain = class_info_arr[17]
+				promo_skl_gain = class_info_arr[18]
+				promo_spd_gain = class_info_arr[19]
+				promo_def_gain = class_info_arr[20]
+				promo_res_gain = class_info_arr[21]
 				unit_arr[3] = unit_arr[3] + promo_hp_gain
 				unit_arr[4] = unit_arr[4] + promo_str_gain
 				unit_arr[5] = unit_arr[5] + promo_skl_gain
@@ -493,14 +501,14 @@ function updateLUT_stage3() -- ~4us on average
 			end
 		else -- Ewan
 			if (ewan_promo_added == 0 and lvl == 1 and unit_arr[35] == 10) then -- Ewan just promoted, add growth to bases
-				rom_class = memory.read_u32_le(addr+0x4, "System Bus")
-				promo_gain_arr = memory.read_bytes_as_array(rom_class + 0x22, 6, "System Bus")
-				promo_hp_gain = promo_gain_arr[1]
-				promo_str_gain = promo_gain_arr[2]
-				promo_skl_gain = promo_gain_arr[3]
-				promo_spd_gain = promo_gain_arr[4]
-				promo_def_gain = promo_gain_arr[5]
-				promo_res_gain = promo_gain_arr[6]
+				-- rom_class = memory.read_u32_le(addr+0x4, "System Bus")
+				-- promo_gain_arr = memory.read_bytes_as_array(rom_class + 0x22, 6, "System Bus")
+				promo_hp_gain = class_info_arr[16]
+				promo_str_gain = class_info_arr[17]
+				promo_skl_gain = class_info_arr[18]
+				promo_spd_gain = class_info_arr[19]
+				promo_def_gain = class_info_arr[20]
+				promo_res_gain = class_info_arr[21]
 				unit_arr[3] = unit_arr[3] + promo_hp_gain
 				unit_arr[4] = unit_arr[4] + promo_str_gain
 				unit_arr[5] = unit_arr[5] + promo_skl_gain
@@ -537,6 +545,13 @@ function updateLUT_stage3() -- ~4us on average
 	local promo_spd_gain = 0
 	local promo_def_gain = 0
 	local promo_res_gain = 0
+	local avg_hp = 0
+	local avg_str = 0
+	local avg_skl = 0
+	local avg_spd = 0
+	local avg_def = 0
+	local avg_res = 0
+	local avg_lck = 0
 	if unit_arr[34] == 1 then -- if promoted 
 		if currentGame == 'Sealed Sword J' then
 			promo_hp_gain = unit_arr[36]
@@ -546,23 +561,33 @@ function updateLUT_stage3() -- ~4us on average
 			promo_def_gain = unit_arr[40]
 			promo_res_gain = unit_arr[41]
 		else
-			rom_class = memory.read_u32_le(addr + 0x4, "System Bus") -- read class
-			promo_gain_arr = memory.read_bytes_as_array(rom_class + 0x22, 6, "System Bus") -- read promo bonuses from class
-			promo_hp_gain = promo_gain_arr[1]
-			promo_str_gain = promo_gain_arr[2]
-			promo_skl_gain = promo_gain_arr[3]
-			promo_spd_gain = promo_gain_arr[4]
-			promo_def_gain = promo_gain_arr[5]
-			promo_res_gain = promo_gain_arr[6]
+			-- rom_class = memory.read_u32_le(addr + 0x4, "System Bus") -- read class
+			-- promo_gain_arr = memory.read_bytes_as_array(rom_class + 0x22, 6, "System Bus") -- read promo bonuses from class
+			promo_hp_gain = class_info_arr[16]
+			promo_str_gain = class_info_arr[17]
+			promo_skl_gain = class_info_arr[18]
+			promo_spd_gain = class_info_arr[19]
+			promo_def_gain = class_info_arr[20]
+			promo_res_gain = class_info_arr[21]
 		end
+		-- get the min of avg pp_stats and pp_class max, and then min of promoted level stats and promoted maxes added to the previous value
+		--                 promoted caps            pp_caps  bases                      pp_levels     base_lvl        growth                            current_lvl          growths
+		avg_hp =  math.min(class_info_arr[1], math.min(60, unit_arr[03] + math.floor((unit_arr[25] - unit_arr[2]) * unit_arr[18] + 0.5)) + math.floor((unit_arr[10] - 1) * unit_arr[18] + 0.5) + promo_hp_gain)
+		avg_str = math.min(class_info_arr[2], math.min(20, unit_arr[04] + math.floor((unit_arr[25] - unit_arr[2]) * unit_arr[19] + 0.5)) + math.floor((unit_arr[10] - 1) * unit_arr[19] + 0.5) + promo_str_gain)
+		avg_skl = math.min(class_info_arr[3], math.min(20, unit_arr[05] + math.floor((unit_arr[25] - unit_arr[2]) * unit_arr[20] + 0.5)) + math.floor((unit_arr[10] - 1) * unit_arr[20] + 0.5) + promo_skl_gain)
+		avg_spd = math.min(class_info_arr[4], math.min(20, unit_arr[06] + math.floor((unit_arr[25] - unit_arr[2]) * unit_arr[21] + 0.5)) + math.floor((unit_arr[10] - 1) * unit_arr[21] + 0.5) + promo_spd_gain)
+		avg_def = math.min(class_info_arr[5], math.min(20, unit_arr[07] + math.floor((unit_arr[25] - unit_arr[2]) * unit_arr[22] + 0.5)) + math.floor((unit_arr[10] - 1) * unit_arr[22] + 0.5) + promo_def_gain)
+		avg_res = math.min(class_info_arr[6], math.min(20, unit_arr[08] + math.floor((unit_arr[25] - unit_arr[2]) * unit_arr[23] + 0.5)) + math.floor((unit_arr[10] - 1) * unit_arr[23] + 0.5) + promo_res_gain)
+		avg_lck = math.min(30               , math.min(30, unit_arr[09] + math.floor((unit_arr[25] - unit_arr[2]) * unit_arr[24] + 0.5)) + math.floor((unit_arr[10] - 1) * unit_arr[24] + 0.5))
+	else
+		avg_hp =  math.min(class_info_arr[1], unit_arr[03] + math.floor((unit_arr[25] - unit_arr[2]) * unit_arr[18] + 0.5))
+		avg_str = math.min(class_info_arr[2], unit_arr[04] + math.floor((unit_arr[25] - unit_arr[2]) * unit_arr[19] + 0.5))
+		avg_skl = math.min(class_info_arr[3], unit_arr[05] + math.floor((unit_arr[25] - unit_arr[2]) * unit_arr[20] + 0.5))
+		avg_spd = math.min(class_info_arr[4], unit_arr[06] + math.floor((unit_arr[25] - unit_arr[2]) * unit_arr[21] + 0.5))
+		avg_def = math.min(class_info_arr[5], unit_arr[07] + math.floor((unit_arr[25] - unit_arr[2]) * unit_arr[22] + 0.5))
+		avg_res = math.min(class_info_arr[6], unit_arr[08] + math.floor((unit_arr[25] - unit_arr[2]) * unit_arr[23] + 0.5))
+		avg_lck = math.min(30, 				  unit_arr[09] + math.floor((unit_arr[25] - unit_arr[2]) * unit_arr[24] + 0.5))
 	end
-	local avg_hp =  unit_arr[03] + math.floor(Cdata['lvls_gained'] * unit_arr[18] + 0.5) + promo_hp_gain
-	local avg_str = unit_arr[04] + math.floor(Cdata['lvls_gained'] * unit_arr[19] + 0.5) + promo_str_gain
-	local avg_skl = unit_arr[05] + math.floor(Cdata['lvls_gained'] * unit_arr[20] + 0.5) + promo_skl_gain
-	local avg_spd = unit_arr[06] + math.floor(Cdata['lvls_gained'] * unit_arr[21] + 0.5) + promo_spd_gain
-	local avg_def = unit_arr[07] + math.floor(Cdata['lvls_gained'] * unit_arr[22] + 0.5) + promo_def_gain
-	local avg_res = unit_arr[08] + math.floor(Cdata['lvls_gained'] * unit_arr[23] + 0.5) + promo_res_gain
-	local avg_lck = unit_arr[09] + math.floor(Cdata['lvls_gained'] * unit_arr[24] + 0.5)
 	unit_arr[26] = Cdata['maxHP']-avg_hp
 	unit_arr[27] = Cdata['str']-avg_str
 	unit_arr[28] = Cdata['skl']-avg_skl
