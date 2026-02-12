@@ -394,9 +394,18 @@ function updateLUT_stage2(char_number) -- ~7-15us on average
 	-- if our current level is less than pp_level, then we just promoted
 	unit_arr[10] = lvl
 	Cdata['lvl'] = lvl
+	-- For some reason in some cutscenes characters will load with lvl 1 when their base level wasn't 1.
+	-- My current solution is to only process promotions if their current class is a promoted class too (this could be flawed somewhere)
+	-- I also check to see if the unit is a cutscene character (bytes[7] == 64), but they're not always marked right
 	if (unit_arr[10] < unit_arr[25]) then -- if current level is less than pp_level, then we just promoted
-		unit_arr[34] = 1
-		re_draw = 1
+		rom_class = memory.read_u32_le(addr+0x4, "System Bus")
+		promoted_class = memory.readbyte(rom_class+0x29) & 0x1
+		if (promoted_class == 1 and bytes[7] ~= 64) then
+			unit_arr[34] = 1
+			re_draw = 1
+		else
+			return
+		end
 	end	
 	-- If we're not promoted and have gained a level, add it to pp_lvl
 	if unit_arr[34] == 0 and unit_arr[25] ~= 0 then
@@ -526,7 +535,7 @@ function updateLUT_stage3() -- probably 20+ us at this point
 					Cdata['lvls_gained'] = unit_arr[35] - unit_arr[2]
 			end
 		end
-	elseif (unit_arr[25] == 0) then -- if pp_lvl == 0 then we're a pre-premote. do lvl - base + trainee levels
+	elseif (unit_arr[25] == 0) then -- if pp_lvl == 0 then we're a pre-premote. do lvl - base
 		Cdata['lvls_gained'] = unit_arr[10] - unit_arr[2]
 	elseif unit_arr[34] == 1 then -- we were promoted, so do lvl - 1 + pp_lvl - b_lvl
 		Cdata['lvls_gained'] = unit_arr[10] - 1 + unit_arr[25] - unit_arr[2]
@@ -580,13 +589,13 @@ function updateLUT_stage3() -- probably 20+ us at this point
 		avg_res = math.min(class_info_arr[6], math.min(20, unit_arr[08] + math.floor((unit_arr[25] - unit_arr[2]) * unit_arr[23] + 0.5)) + math.floor((unit_arr[10] - 1) * unit_arr[23] + 0.5) + promo_res_gain)
 		avg_lck = math.min(30               , math.min(30, unit_arr[09] + math.floor((unit_arr[25] - unit_arr[2]) * unit_arr[24] + 0.5)) + math.floor((unit_arr[10] - 1) * unit_arr[24] + 0.5))
 	else
-		avg_hp =  math.min(class_info_arr[1], unit_arr[03] + math.floor((unit_arr[25] - unit_arr[2]) * unit_arr[18] + 0.5))
-		avg_str = math.min(class_info_arr[2], unit_arr[04] + math.floor((unit_arr[25] - unit_arr[2]) * unit_arr[19] + 0.5))
-		avg_skl = math.min(class_info_arr[3], unit_arr[05] + math.floor((unit_arr[25] - unit_arr[2]) * unit_arr[20] + 0.5))
-		avg_spd = math.min(class_info_arr[4], unit_arr[06] + math.floor((unit_arr[25] - unit_arr[2]) * unit_arr[21] + 0.5))
-		avg_def = math.min(class_info_arr[5], unit_arr[07] + math.floor((unit_arr[25] - unit_arr[2]) * unit_arr[22] + 0.5))
-		avg_res = math.min(class_info_arr[6], unit_arr[08] + math.floor((unit_arr[25] - unit_arr[2]) * unit_arr[23] + 0.5))
-		avg_lck = math.min(30, 				  unit_arr[09] + math.floor((unit_arr[25] - unit_arr[2]) * unit_arr[24] + 0.5))
+		avg_hp =  math.min(class_info_arr[1], unit_arr[03] + math.floor((unit_arr[10] - unit_arr[2]) * unit_arr[18] + 0.5))
+		avg_str = math.min(class_info_arr[2], unit_arr[04] + math.floor((unit_arr[10] - unit_arr[2]) * unit_arr[19] + 0.5))
+		avg_skl = math.min(class_info_arr[3], unit_arr[05] + math.floor((unit_arr[10] - unit_arr[2]) * unit_arr[20] + 0.5))
+		avg_spd = math.min(class_info_arr[4], unit_arr[06] + math.floor((unit_arr[10] - unit_arr[2]) * unit_arr[21] + 0.5))
+		avg_def = math.min(class_info_arr[5], unit_arr[07] + math.floor((unit_arr[10] - unit_arr[2]) * unit_arr[22] + 0.5))
+		avg_res = math.min(class_info_arr[6], unit_arr[08] + math.floor((unit_arr[10] - unit_arr[2]) * unit_arr[23] + 0.5))
+		avg_lck = math.min(30, 				  unit_arr[09] + math.floor((unit_arr[10] - unit_arr[2]) * unit_arr[24] + 0.5))
 	end
 	unit_arr[26] = Cdata['maxHP']-avg_hp
 	unit_arr[27] = Cdata['str']-avg_str
