@@ -373,11 +373,13 @@ local stat_mem_offset = 0
 local name_horiz_offset = 37
 local name_vertical_offset = 0x8803D30
 local memory_diff_value = 52
+local class_promo_offset = 0x29
 if currentGame == 'Sealed Sword J' then
 	stat_mem_offset = -2
 	name_horiz_offset = 69
 	name_vertical_offset = 0x8607688
 	memory_diff_value = 48
+	class_promo_offset = 0x25
 end
 
 function updateLUT_stage1(char_number) -- ~3us on average
@@ -399,7 +401,7 @@ function updateLUT_stage2(char_number) -- ~7-15us on average
 	-- I also check to see if the unit is a cutscene character (bytes[7] == 64), but they're not always marked right
 	if (unit_arr[10] < unit_arr[25]) then -- if current level is less than pp_level, then we just promoted
 		rom_class = memory.read_u32_le(addr+0x4, "System Bus")
-		promoted_class = memory.readbyte(rom_class+0x29) & 0x1
+		promoted_class = memory.readbyte(rom_class+class_promo_offset) & 0x1
 		if (promoted_class == 1 and bytes[7] ~= 64) then
 			unit_arr[34] = 1
 			re_draw = 1
