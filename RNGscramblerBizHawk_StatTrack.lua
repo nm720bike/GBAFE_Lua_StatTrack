@@ -196,6 +196,7 @@ event.onexit(function()
 				file:write(key..","..unit_info[1]..","..unit_info[25]..","..unit_info[34]..","..unit_info[35].."\n")
 			end
 		end
+		file:write("num_displayed_units"..","..num_displayed_units)
 		-- do a for loop for all the characters and write the important data here
 		-- important data includes: pp_lvl [25], total_lvls [33], promoted [34], ppp_lvls [35]
         -- file:write(table.concat(UnitsLut, "\n"))
@@ -218,6 +219,10 @@ function loadSessionData()
 					UnitsLut[key][34] = tonumber(columns[4])
 					UnitsLut[key][35] = tonumber(columns[5])
 				end
+			end
+			if(columns[1] == 'num_displayed_units') then
+				num_displayed_units = tonumber(columns[2])
+				re_draw = 1
 			end
 		end
 	end
