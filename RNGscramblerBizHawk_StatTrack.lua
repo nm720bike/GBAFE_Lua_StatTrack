@@ -15,7 +15,6 @@ local last_num_displayed = 0
 local baseFontSize = 3
 local width = 110
 local re_draw = 1
-local leveled_up = 0
 
 local drawString = gui.drawString
 local drawLine = gui.drawLine
@@ -246,7 +245,7 @@ if file_r then
 end
 
 
-local CurrentUnits = {0xbadcafe, 0xbadcafe, 0xbadcafe}
+local CurrentUnits = {0xbadcafe, 0xbadcafe}
 
 heldDown = {
 	['R'] = false, 
@@ -341,7 +340,7 @@ function checkForUserInput()
 		re_draw = 1
 	end
 	if userInput.L and heldDown['L'] == false then
-		character_rotater = (character_rotater - 1) % 3
+		character_rotater = (character_rotater + 1) % (#CurrentUnits-2)
 		re_draw = 1
 	end
 	for key, value in pairs(heldDown) do
@@ -404,7 +403,7 @@ function updateLUT_stage2(char_number) -- ~7-15us on average
 	-- For some reason in some cutscenes characters will load with lvl 1 when their base level wasn't 1.
 	-- My current solution is to only process promotions if their current class is a promoted class too (this could be flawed somewhere)
 	-- I also check to see if the unit is a cutscene character (bytes[7] == 64), but they're not always marked right
-	if (unit_arr[10] < unit_arr[25]) then -- if current level is less than pp_level, then we just promoted
+	if (unit_arr[10] < unit_arr[25] and unit_arr[34] == 0) then -- if current level is less than pp_level, then we just promoted
 		rom_class = memory.read_u32_le(addr+0x4, "System Bus")
 		promoted_class = memory.readbyte(rom_class+class_promo_offset) & 0x1
 		if (promoted_class == 1 and bytes[7] ~= 64) then
@@ -549,10 +548,6 @@ function updateLUT_stage3() -- probably 20+ us at this point
 	else -- we're unpromoted
 		Cdata['lvls_gained'] = unit_arr[25] - unit_arr[2]
 	end
-	if (unit_arr[33] < Cdata['lvls_gained']) then
-		leveled_up = 1
-		-- print("level up detected")
-	end
 	unit_arr[33] = Cdata['lvls_gained']
 
 	local promo_hp_gain = 0
@@ -614,29 +609,33 @@ function updateLUT_stage3() -- probably 20+ us at this point
 end
 
 function updateLUT_stage4() -- ~1.4us on average
-	if (leveled_up == 1) then 
-		re_draw = 1
-		leveled_up = 0
-	end
-	if Cdata['lvls_gained'] > UnitsLut[CurrentUnits[3]][33] then
-		if CurrentUnits[3] ~= Cdata['lookupKey'] then
-			CurrentUnits[1] = CurrentUnits[2]
-			CurrentUnits[2] = CurrentUnits[3]
-			CurrentUnits[3] = Cdata['lookupKey']
-			re_draw = 1
-			if CurrentUnits[2] == CurrentUnits[3] then CurrentUnits[2] = 0xbadcafe end
-			if CurrentUnits[1] == CurrentUnits[3] then CurrentUnits[1] = 0xbadcafe end
+	if (Cdata['lvls_gained'] > 0) then 
+		local i = #CurrentUnits
+		local inserted = false
+		while i > 0 do
+			if CurrentUnits[i] == Cdata['lookupKey'] and not(inserted) then
+				return
+			end
+			if (inserted) then
+				if Cdata['lookupKey'] == CurrentUnits[i] then
+					table.remove(CurrentUnits,i)
+					re_draw = 1
+				end
+			elseif (Cdata['lvls_gained'] > UnitsLut[CurrentUnits[i]][33]) then
+				table.insert(CurrentUnits, i+1, Cdata['lookupKey'])
+				inserted = true
+				re_draw = 1
+				i = i + 1
+			end
+			i = i - 1;
 		end
-	elseif Cdata['lvls_gained'] > UnitsLut[CurrentUnits[2]][33] then
-		if CurrentUnits[2] ~= Cdata['lookupKey'] and CurrentUnits[3] ~= Cdata['lookupKey'] then
-			CurrentUnits[1] = CurrentUnits[2]
-			CurrentUnits[2] = Cdata['lookupKey']
-			if CurrentUnits[1] == CurrentUnits[2] then CurrentUnits[1] = 0xbadcafe end
+		if #CurrentUnits == 0 then
+			table.insert(CurrentUnits, 1, Cdata['lookupKey'])
+			re_draw = 1
+		elseif (not(inserted) and Cdata['lvls_gained'] > 0 and not(contains(CurrentUnits, Cdata['lookupKey']))) then
+			table.insert(CurrentUnits, 1, Cdata['lookupKey'])
 			re_draw = 1
 		end
-	elseif Cdata['lvls_gained'] > UnitsLut[CurrentUnits[1]][33] and CurrentUnits[1] ~= Cdata['lookupKey'] and CurrentUnits[2] ~= Cdata['lookupKey'] and CurrentUnits[3] ~= Cdata['lookupKey'] then
-		CurrentUnits[1] = Cdata['lookupKey']
-		re_draw = 1
 	end
 end
 
@@ -679,7 +678,6 @@ function draw()
 	drawLine(0+offset, 102, width+offset, 102, foreground_color, "emucore") -- horizontal line at 102
 	drawLine(0+offset, 112, width+offset, 112, foreground_color, "emucore") -- horizontal line at 112
 	
-	-- gui.drawImage("./images/Ephraim.png", 17, 1)
 	gui.drawImageRegion("./images/ref_img.png",0,0,13,6,1+offset,45) -- lvl
 	gui.drawImageRegion("./images/ref_img.png",0,6,13,6,1+offset,55) -- hp
 	gui.drawImageRegion("./images/ref_img.png",0,12,13,6,1+offset,65) -- str
@@ -689,9 +687,9 @@ function draw()
 	gui.drawImageRegion("./images/ref_img.png",0,36,13,6,1+offset,105) -- def
 	gui.drawImageRegion("./images/ref_img.png",0,42,13,6,1+offset,115) -- res
 	if (num_displayed_units > 0) then
-		CurrentUnitIndex = (2 + character_rotater) % 3
+		CurrentUnitIndex = (#CurrentUnits - 1 - character_rotater) % #CurrentUnits
 	else
-		CurrentUnitIndex = (num_displayed_units+3 + character_rotater) % 3
+		CurrentUnitIndex = (#CurrentUnits - 3 + num_displayed_units+3 - character_rotater) % #CurrentUnits
 	end
 	unitInfo = UnitsLut[CurrentUnits[CurrentUnitIndex+1]]
 	if (unitInfo[1] ~= '') then
@@ -717,9 +715,9 @@ function draw()
 	if (num_displayed_units > 1 or num_displayed_units < -1) then
 		drawLine(width - 33 + offset, 0, width - 33 + offset, bufferheight, foreground_color, "emucore") -- vertical line at -66
 		if (num_displayed_units > 0) then
-			CurrentUnitIndex = (1 + character_rotater) % 3
+			CurrentUnitIndex = (#CurrentUnits - 2 - character_rotater) % #CurrentUnits
 		else
-			CurrentUnitIndex = (num_displayed_units+4 + character_rotater) % 3
+			CurrentUnitIndex = (#CurrentUnits - 2 + num_displayed_units+3 - character_rotater) % #CurrentUnits
 		end
 		unitInfo = UnitsLut[CurrentUnits[CurrentUnitIndex+1]]
 		if (unitInfo[1] ~= '') then
@@ -746,9 +744,9 @@ function draw()
 	if (num_displayed_units > 2 or num_displayed_units < -2) then
 		drawLine(width - 66 +offset, 0, width - 66 +offset, bufferheight, foreground_color, "emucore") -- vertical line at -34
 		if (num_displayed_units > 0) then
-			CurrentUnitIndex = (0 + character_rotater) % 3
+			CurrentUnitIndex = (#CurrentUnits - 3 - character_rotater) % #CurrentUnits
 		else
-			CurrentUnitIndex = (2 + character_rotater) % 3
+			CurrentUnitIndex = (#CurrentUnits - 1 + num_displayed_units+3 - character_rotater) % #CurrentUnits
 		end
 		unitInfo = UnitsLut[CurrentUnits[CurrentUnitIndex+1]]
 		if (unitInfo[1] ~= '') then
