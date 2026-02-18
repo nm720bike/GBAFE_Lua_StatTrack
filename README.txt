@@ -1,8 +1,8 @@
-README for GBAFE Lua StatTrack script.
+README for GBA FE Lua StatTrack script.
 
 Credit to Dondon151 for the RNG scrambler functionality of this script. And shoutout to Geene whose scripts I borrowed some insiration from and whose readme I copied from
 
-This script currently works for FE6 and FE8, and support for FE7 may come in the future
+This script currently works for all FE6 (J) FE7 (U) and FE8 (U) 
 
 ----------------------------------------------------
 !!IMPORTANT!! Session Save information !!IMPORTANT!!
