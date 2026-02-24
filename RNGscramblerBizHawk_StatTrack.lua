@@ -537,13 +537,10 @@ function updateLUT_stage3() -- probably 20+ us at this point
 	if (unit_arr[35] ~= 0) then
 		if (Cdata['lookupKey'] == 0x8803E9C) then -- ross (I'm assuming pirate promotion. Sorry Hero Ross)
 			ppp_promo_gains = {2,2,0,1,1,0}
-			ppp_reached_10 = ross_promo_added
 		elseif (Cdata['lookupKey'] == 0x88040D8) then -- amelia (I'm assuming cav promotion. Sorry General Amelia)
 			ppp_promo_gains = {1,0,2,2,0,2}
-			ppp_reached_10 = amelia_promo_added
 		else
 			ppp_promo_gains = {1,0,2,2,0,2}
-			ppp_reached_10 = ewan_promo_added
 		end
 		if unit_arr[34] == 1 then -- if promoted
 			promo_hp_gain = class_info_arr[16]
@@ -562,7 +559,7 @@ function updateLUT_stage3() -- probably 20+ us at this point
 			avg_lck = math.min(30               , math.floor(math.min(30, unit_arr[09] + (unit_arr[25] + unit_arr[35] - 2) * unit_arr[24]                     ) + (unit_arr[10] - 1) * unit_arr[24] + 0.5))
 			Cdata['lvls_gained'] = unit_arr[10] - 1 + unit_arr[25] - unit_arr[2] + unit_arr[35] - 1
 		else
-			if (ppp_reached_10 == 1) then
+			if (unit_arr[35] == 10) then
 				avg_hp =  math.min(class_info_arr[1], unit_arr[03] + math.floor((unit_arr[10] + unit_arr[35] - 2) * unit_arr[18] + 0.5 + ppp_promo_gains[1]))
 				avg_str = math.min(class_info_arr[2], unit_arr[04] + math.floor((unit_arr[10] + unit_arr[35] - 2) * unit_arr[19] + 0.5 + ppp_promo_gains[2]))
 				avg_skl = math.min(class_info_arr[3], unit_arr[05] + math.floor((unit_arr[10] + unit_arr[35] - 2) * unit_arr[20] + 0.5 + ppp_promo_gains[3]))
