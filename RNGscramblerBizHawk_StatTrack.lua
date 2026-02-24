@@ -125,7 +125,6 @@ if currentGame == 'Sealed Sword J' then
 		[0x8607FA0] = {"Thea",		08, 22, 06, 08, 11, 07, 06, 03, 0, 0, 0, 0, 0, 0, 0, 0, 0.60, 0.40, 0.45, 0.55, 0.15, 0.20, 0.40, 08, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6, 2, 2, 2, 2, 2},
 		[0x8607FD0] = {"Shanna",	01, 17, 04, 06, 12, 06, 05, 05, 0, 0, 0, 0, 0, 0, 0, 0, 0.45, 0.30, 0.55, 0.60, 0.10, 0.25, 0.60, 01, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6, 2, 2, 2, 2, 2},
 		[0x8608000] = {"Zeiss",		07, 28, 14, 09, 08, 12, 02, 06, 0, 0, 0, 0, 0, 0, 0, 0, 0.80, 0.60, 0.50, 0.35, 0.25, 0.05, 0.20, 07, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 2, 2, 2, 2, 1},
-		-- Galle
 		[0x8608060] = {"Elphin",	01, 15, 01, 03, 10, 04, 01, 11, 0, 0, 0, 0, 0, 0, 0, 0, 0.80, 0.05, 0.05, 0.65, 0.25, 0.55, 0.65, 01, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 		[0x8608090] = {"Cath",		05, 16, 03, 07, 11, 02, 01, 08, 0, 0, 0, 0, 0, 0, 0, 0, 0.80, 0.40, 0.45, 0.85, 0.15, 0.20, 0.50, 05, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 		[0x86080C0] = {"Sophia",	01, 15, 06, 02, 04, 01, 08, 03, 0, 0, 0, 0, 0, 0, 0, 0, 0.60, 0.55, 0.40, 0.30, 0.20, 0.55, 0.20, 01, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 4, 2, 3, 2, 2},
@@ -518,99 +517,7 @@ function updateLUT_stage3() -- probably 20+ us at this point
 	-- arr[1:6] is max stats
 	-- arr[16:21] is promotion gains (FE8)
 
-	if (unit_arr[35] ~= 0) then -- we're a trainee
-		if (Cdata['lookupKey'] == '8803E9C') then -- ross
-			if (ross_promo_added == 0 and lvl == 1 and unit_arr[35] == 10) then -- Ross just promoted, add growth to bases
-				-- rom_class = memory.read_u32_le(addr+0x4, "System Bus")
-				-- promo_gain_arr = memory.read_bytes_as_array(rom_class + 0x22, 6, "System Bus")
-				promo_hp_gain = class_info_arr[16]
-				promo_str_gain = class_info_arr[17]
-				promo_skl_gain = class_info_arr[18]
-				promo_spd_gain = class_info_arr[19]
-				promo_def_gain = class_info_arr[20]
-				promo_res_gain = class_info_arr[21]
-				unit_arr[3] = unit_arr[3] + promo_hp_gain
-				unit_arr[4] = unit_arr[4] + promo_str_gain
-				unit_arr[5] = unit_arr[5] + promo_skl_gain
-				unit_arr[6] = unit_arr[6] + promo_spd_gain
-				unit_arr[7] = unit_arr[7] + promo_def_gain
-				unit_arr[8] = unit_arr[8] + promo_res_gain
-				ross_promo_added = 1
-				unit_arr[25] = 1
-			end
-			if unit_arr[34] == 1 then -- we were promoted, so do lvl - 1 + pp_lvl - b_lvl + ppp_lvl - 1
-				Cdata['lvls_gained'] = unit_arr[10] - 1 + unit_arr[25] - unit_arr[2] + unit_arr[35] - 1
-			elseif (unit_arr[25] > 0) then --we're not promoted yet (still trainee class), so do lvl - b_lvl + ppp_lvl - 1
-				Cdata['lvls_gained'] = unit_arr[25] - unit_arr[2] + unit_arr[35] - 1
-			else
-				Cdata['lvls_gained'] = unit_arr[35] - unit_arr[2]
-			end
-		elseif (Cdata['lookupKey'] == '88040D8') then -- amelia
-			if (amelia_promo_added == 0 and lvl == 1 and unit_arr[35] == 10) then -- Amelia just promoted, add growth to bases
-				-- rom_class = memory.read_u32_le(addr+0x4, "System Bus")
-				-- promo_gain_arr = memory.read_bytes_as_array(rom_class + 0x22, 6, "System Bus")
-				promo_hp_gain = class_info_arr[16]
-				promo_str_gain = class_info_arr[17]
-				promo_skl_gain = class_info_arr[18]
-				promo_spd_gain = class_info_arr[19]
-				promo_def_gain = class_info_arr[20]
-				promo_res_gain = class_info_arr[21]
-				unit_arr[3] = unit_arr[3] + promo_hp_gain
-				unit_arr[4] = unit_arr[4] + promo_str_gain
-				unit_arr[5] = unit_arr[5] + promo_skl_gain
-				unit_arr[6] = unit_arr[6] + promo_spd_gain
-				unit_arr[7] = unit_arr[7] + promo_def_gain
-				unit_arr[8] = unit_arr[8] + promo_res_gain
-				amelia_promo_added = 1
-				unit_arr[25] = 1
-			end
-			if unit_arr[34] == 1 then -- we were promoted, so do lvl - 1 + pp_lvl - b_lvl + ppp_lvl - 1
-				Cdata['lvls_gained'] = unit_arr[10] - 1 + unit_arr[25] - unit_arr[2] + unit_arr[35] - 1
-			elseif (unit_arr[25] > 0) then --we're not promoted yet (still trainee class), so do lvl - b_lvl + ppp_lvl - 1
-				Cdata['lvls_gained'] = unit_arr[25] - unit_arr[2] + unit_arr[35] - 1
-			else
-				Cdata['lvls_gained'] = unit_arr[35] - unit_arr[2]
-			end
-		else -- Ewan
-			if (ewan_promo_added == 0 and lvl == 1 and unit_arr[35] == 10) then -- Ewan just promoted, add growth to bases
-				-- rom_class = memory.read_u32_le(addr+0x4, "System Bus")
-				-- promo_gain_arr = memory.read_bytes_as_array(rom_class + 0x22, 6, "System Bus")
-				promo_hp_gain = class_info_arr[16]
-				promo_str_gain = class_info_arr[17]
-				promo_skl_gain = class_info_arr[18]
-				promo_spd_gain = class_info_arr[19]
-				promo_def_gain = class_info_arr[20]
-				promo_res_gain = class_info_arr[21]
-				unit_arr[3] = unit_arr[3] + promo_hp_gain
-				unit_arr[4] = unit_arr[4] + promo_str_gain
-				unit_arr[5] = unit_arr[5] + promo_skl_gain
-				unit_arr[6] = unit_arr[6] + promo_spd_gain
-				unit_arr[7] = unit_arr[7] + promo_def_gain
-				unit_arr[8] = unit_arr[8] + promo_res_gain
-				ewan_promo_added = 1
-				unit_arr[25] = 1
-			end
-			if unit_arr[34] == 1 then -- we were promoted, so do lvl - 1 + pp_lvl - b_lvl + ppp_lvl - 1
-				Cdata['lvls_gained'] = unit_arr[10] - 1 + unit_arr[25] - unit_arr[2] + unit_arr[35] - 1
-			elseif (unit_arr[25] > 0) then --we're not promoted yet (still trainee class), so do lvl - b_lvl + ppp_lvl - 1
-				Cdata['lvls_gained'] = unit_arr[25] - unit_arr[2] + unit_arr[35] - 1
-			else
-					Cdata['lvls_gained'] = unit_arr[35] - unit_arr[2]
-			end
-		end
-	elseif (unit_arr[25] == 0) then -- if pp_lvl == 0 then we're a pre-premote. do lvl - base
-		Cdata['lvls_gained'] = unit_arr[10] - unit_arr[2]
-	elseif unit_arr[34] == 1 then -- we were promoted, so do lvl - 1 + pp_lvl - b_lvl
-		Cdata['lvls_gained'] = unit_arr[10] - 1 + unit_arr[25] - unit_arr[2]
-	else -- we're unpromoted
-		Cdata['lvls_gained'] = unit_arr[25] - unit_arr[2]
-	end
-	-- We just leveled up
-	if (unit_arr[33] < Cdata['lvls_gained']) then
-		print("We just leveled up!")
-		re_draw = 1
-	end
-	unit_arr[33] = Cdata['lvls_gained']
+	
 
 	local promo_hp_gain = 0
 	local promo_str_gain = 0
@@ -625,42 +532,95 @@ function updateLUT_stage3() -- probably 20+ us at this point
 	local avg_def = 0
 	local avg_res = 0
 	local avg_lck = 0
-	if unit_arr[34] == 1 then -- if promoted 
-		if currentGame == 'Sealed Sword J' then
-			promo_hp_gain = unit_arr[36]
-			promo_str_gain = unit_arr[37]
-			promo_skl_gain = unit_arr[38]
-			promo_spd_gain = unit_arr[39]
-			promo_def_gain = unit_arr[40]
-			promo_res_gain = unit_arr[41]
+	-- handle the trainees first
+	-- add trainee promo bonuses here
+	if (unit_arr[35] ~= 0) then
+		if (Cdata['lookupKey'] == 0x8803E9C) then -- ross (I'm assuming pirate promotion. Sorry Hero Ross)
+			ppp_promo_gains = {2,2,0,1,1,0}
+			ppp_reached_10 = ross_promo_added
+		elseif (Cdata['lookupKey'] == 0x88040D8) then -- amelia (I'm assuming cav promotion. Sorry General Amelia)
+			ppp_promo_gains = {1,0,2,2,0,2}
+			ppp_reached_10 = amelia_promo_added
 		else
-			-- rom_class = memory.read_u32_le(addr + 0x4, "System Bus") -- read class
-			-- promo_gain_arr = memory.read_bytes_as_array(rom_class + 0x22, 6, "System Bus") -- read promo bonuses from class
+			ppp_promo_gains = {1,0,2,2,0,2}
+			ppp_reached_10 = ewan_promo_added
+		end
+		if unit_arr[34] == 1 then -- if promoted
 			promo_hp_gain = class_info_arr[16]
 			promo_str_gain = class_info_arr[17]
 			promo_skl_gain = class_info_arr[18]
 			promo_spd_gain = class_info_arr[19]
 			promo_def_gain = class_info_arr[20]
 			promo_res_gain = class_info_arr[21]
+
+			avg_hp =  math.min(class_info_arr[1], math.floor(math.min(60, unit_arr[03] + (unit_arr[25] + unit_arr[35] - 2) * unit_arr[18] + ppp_promo_gains[1]) + (unit_arr[10] - 1) * unit_arr[18] + 0.5) + promo_hp_gain)
+			avg_str = math.min(class_info_arr[2], math.floor(math.min(20, unit_arr[04] + (unit_arr[25] + unit_arr[35] - 2) * unit_arr[19] + ppp_promo_gains[2]) + (unit_arr[10] - 1) * unit_arr[19] + 0.5) + promo_str_gain)
+			avg_skl = math.min(class_info_arr[3], math.floor(math.min(20, unit_arr[05] + (unit_arr[25] + unit_arr[35] - 2) * unit_arr[20] + ppp_promo_gains[3]) + (unit_arr[10] - 1) * unit_arr[20] + 0.5) + promo_skl_gain)
+			avg_spd = math.min(class_info_arr[4], math.floor(math.min(20, unit_arr[06] + (unit_arr[25] + unit_arr[35] - 2) * unit_arr[21] + ppp_promo_gains[4]) + (unit_arr[10] - 1) * unit_arr[21] + 0.5) + promo_spd_gain)
+			avg_def = math.min(class_info_arr[5], math.floor(math.min(20, unit_arr[07] + (unit_arr[25] + unit_arr[35] - 2) * unit_arr[22] + ppp_promo_gains[5]) + (unit_arr[10] - 1) * unit_arr[22] + 0.5) + promo_def_gain)
+			avg_res = math.min(class_info_arr[6], math.floor(math.min(20, unit_arr[08] + (unit_arr[25] + unit_arr[35] - 2) * unit_arr[23] + ppp_promo_gains[6]) + (unit_arr[10] - 1) * unit_arr[23] + 0.5) + promo_res_gain)
+			avg_lck = math.min(30               , math.floor(math.min(30, unit_arr[09] + (unit_arr[25] + unit_arr[35] - 2) * unit_arr[24]                     ) + (unit_arr[10] - 1) * unit_arr[24] + 0.5))
+			Cdata['lvls_gained'] = unit_arr[10] - 1 + unit_arr[25] - unit_arr[2] + unit_arr[35] - 1
+		else
+			if (ppp_reached_10 == 1) then
+				avg_hp =  math.min(class_info_arr[1], unit_arr[03] + math.floor((unit_arr[10] + unit_arr[35] - 2) * unit_arr[18] + 0.5 + ppp_promo_gains[1]))
+				avg_str = math.min(class_info_arr[2], unit_arr[04] + math.floor((unit_arr[10] + unit_arr[35] - 2) * unit_arr[19] + 0.5 + ppp_promo_gains[2]))
+				avg_skl = math.min(class_info_arr[3], unit_arr[05] + math.floor((unit_arr[10] + unit_arr[35] - 2) * unit_arr[20] + 0.5 + ppp_promo_gains[3]))
+				avg_spd = math.min(class_info_arr[4], unit_arr[06] + math.floor((unit_arr[10] + unit_arr[35] - 2) * unit_arr[21] + 0.5 + ppp_promo_gains[4]))
+				avg_def = math.min(class_info_arr[5], unit_arr[07] + math.floor((unit_arr[10] + unit_arr[35] - 2) * unit_arr[22] + 0.5 + ppp_promo_gains[5]))
+				avg_res = math.min(class_info_arr[6], unit_arr[08] + math.floor((unit_arr[10] + unit_arr[35] - 2) * unit_arr[23] + 0.5 + ppp_promo_gains[6]))
+				avg_lck = math.min(30, 				  unit_arr[09] + math.floor((unit_arr[10] + unit_arr[35] - 2) * unit_arr[24] + 0.5))
+				Cdata['lvls_gained'] = unit_arr[25] - unit_arr[2] + unit_arr[35] - 1
+			else
+				avg_hp =  math.min(class_info_arr[1], unit_arr[03] + math.floor((unit_arr[35] - 1) * unit_arr[18] + 0.5))
+				avg_str = math.min(class_info_arr[2], unit_arr[04] + math.floor((unit_arr[35] - 1) * unit_arr[19] + 0.5))
+				avg_skl = math.min(class_info_arr[3], unit_arr[05] + math.floor((unit_arr[35] - 1) * unit_arr[20] + 0.5))
+				avg_spd = math.min(class_info_arr[4], unit_arr[06] + math.floor((unit_arr[35] - 1) * unit_arr[21] + 0.5))
+				avg_def = math.min(class_info_arr[5], unit_arr[07] + math.floor((unit_arr[35] - 1) * unit_arr[22] + 0.5))
+				avg_res = math.min(class_info_arr[6], unit_arr[08] + math.floor((unit_arr[35] - 1) * unit_arr[23] + 0.5))
+				avg_lck = math.min(30, 				  unit_arr[09] + math.floor((unit_arr[35] - 1) * unit_arr[24] + 0.5))
+				Cdata['lvls_gained'] = unit_arr[35] - unit_arr[2]
+			end
 		end
-		-- get the min of avg pp_stats and pp_class max, and then min of promoted level stats and promoted maxes added to the previous value
-		--                 promoted caps            pp_caps  bases                      pp_levels     base_lvl        growth                            current_lvl          growths
-		avg_hp =  math.min(class_info_arr[1], math.min(60, unit_arr[03] + math.floor((unit_arr[25] - unit_arr[2]) * unit_arr[18] + 0.5)) + math.floor((unit_arr[10] - 1) * unit_arr[18] + 0.5) + promo_hp_gain)
-		avg_str = math.min(class_info_arr[2], math.min(20, unit_arr[04] + math.floor((unit_arr[25] - unit_arr[2]) * unit_arr[19] + 0.5)) + math.floor((unit_arr[10] - 1) * unit_arr[19] + 0.5) + promo_str_gain)
-		avg_skl = math.min(class_info_arr[3], math.min(20, unit_arr[05] + math.floor((unit_arr[25] - unit_arr[2]) * unit_arr[20] + 0.5)) + math.floor((unit_arr[10] - 1) * unit_arr[20] + 0.5) + promo_skl_gain)
-		avg_spd = math.min(class_info_arr[4], math.min(20, unit_arr[06] + math.floor((unit_arr[25] - unit_arr[2]) * unit_arr[21] + 0.5)) + math.floor((unit_arr[10] - 1) * unit_arr[21] + 0.5) + promo_spd_gain)
-		avg_def = math.min(class_info_arr[5], math.min(20, unit_arr[07] + math.floor((unit_arr[25] - unit_arr[2]) * unit_arr[22] + 0.5)) + math.floor((unit_arr[10] - 1) * unit_arr[22] + 0.5) + promo_def_gain)
-		avg_res = math.min(class_info_arr[6], math.min(20, unit_arr[08] + math.floor((unit_arr[25] - unit_arr[2]) * unit_arr[23] + 0.5)) + math.floor((unit_arr[10] - 1) * unit_arr[23] + 0.5) + promo_res_gain)
-		avg_lck = math.min(30               , math.min(30, unit_arr[09] + math.floor((unit_arr[25] - unit_arr[2]) * unit_arr[24] + 0.5)) + math.floor((unit_arr[10] - 1) * unit_arr[24] + 0.5))
-	else
-		avg_hp =  math.min(class_info_arr[1], unit_arr[03] + math.floor((unit_arr[10] - unit_arr[2]) * unit_arr[18] + 0.5))
-		avg_str = math.min(class_info_arr[2], unit_arr[04] + math.floor((unit_arr[10] - unit_arr[2]) * unit_arr[19] + 0.5))
-		avg_skl = math.min(class_info_arr[3], unit_arr[05] + math.floor((unit_arr[10] - unit_arr[2]) * unit_arr[20] + 0.5))
-		avg_spd = math.min(class_info_arr[4], unit_arr[06] + math.floor((unit_arr[10] - unit_arr[2]) * unit_arr[21] + 0.5))
-		avg_def = math.min(class_info_arr[5], unit_arr[07] + math.floor((unit_arr[10] - unit_arr[2]) * unit_arr[22] + 0.5))
-		avg_res = math.min(class_info_arr[6], unit_arr[08] + math.floor((unit_arr[10] - unit_arr[2]) * unit_arr[23] + 0.5))
-		avg_lck = math.min(30, 				  unit_arr[09] + math.floor((unit_arr[10] - unit_arr[2]) * unit_arr[24] + 0.5))
+	else -- not a trainee (thank goodness)
+		if unit_arr[34] == 1 then -- if promoted 
+			if currentGame == 'Sealed Sword J' then
+				promo_gains = {unit_arr[36], unit_arr[37], unit_arr[38], unit_arr[39], unit_arr[40], unit_arr[41]}
+				print(unit_arr[1])
+				print(promo_gains)
+			else
+				promo_gains = {class_info_arr[16], class_info_arr[17], class_info_arr[18], class_info_arr[19], class_info_arr[20], class_info_arr[21]}
+			end
+			-- get the min of avg pp_stats and pp_class max, and then min of promoted level stats and promoted maxes added to the previous value
+			--                 promoted caps            pp_caps  bases                      pp_levels     base_lvl        growth          current_lvl          growths
+			avg_hp =  math.min(class_info_arr[1], math.floor(math.min(60, unit_arr[03] + (unit_arr[25] - unit_arr[2]) * unit_arr[18]) + (unit_arr[10] - 1) * unit_arr[18] + 0.5) + promo_gains[1])
+			avg_str = math.min(class_info_arr[2], math.floor(math.min(20, unit_arr[04] + (unit_arr[25] - unit_arr[2]) * unit_arr[19]) + (unit_arr[10] - 1) * unit_arr[19] + 0.5) + promo_gains[2])
+			avg_skl = math.min(class_info_arr[3], math.floor(math.min(20, unit_arr[05] + (unit_arr[25] - unit_arr[2]) * unit_arr[20]) + (unit_arr[10] - 1) * unit_arr[20] + 0.5) + promo_gains[3])
+			avg_spd = math.min(class_info_arr[4], math.floor(math.min(20, unit_arr[06] + (unit_arr[25] - unit_arr[2]) * unit_arr[21]) + (unit_arr[10] - 1) * unit_arr[21] + 0.5) + promo_gains[4])
+			avg_def = math.min(class_info_arr[5], math.floor(math.min(20, unit_arr[07] + (unit_arr[25] - unit_arr[2]) * unit_arr[22]) + (unit_arr[10] - 1) * unit_arr[22] + 0.5) + promo_gains[5])
+			avg_res = math.min(class_info_arr[6], math.floor(math.min(20, unit_arr[08] + (unit_arr[25] - unit_arr[2]) * unit_arr[23]) + (unit_arr[10] - 1) * unit_arr[23] + 0.5) + promo_gains[6])
+			avg_lck = math.min(30               , math.floor(math.min(30, unit_arr[09] + (unit_arr[25] - unit_arr[2]) * unit_arr[24]) + (unit_arr[10] - 1) * unit_arr[24] + 0.5))
+			if (unit_arr[25] == 0) then -- if pp_lvl == 0 then we're a pre-premote. do lvl - base
+				Cdata['lvls_gained'] = unit_arr[10] - unit_arr[2]
+			elseif unit_arr[34] == 1 then -- we were promoted, so do lvl - 1 + pp_lvl - b_lvl
+				Cdata['lvls_gained'] = unit_arr[10] - 1 + unit_arr[25] - unit_arr[2]
+			end
+		else -- unpromoted unit
+			avg_hp =  math.min(class_info_arr[1], unit_arr[03] + math.floor((unit_arr[10] - unit_arr[2]) * unit_arr[18] + 0.5))
+			avg_str = math.min(class_info_arr[2], unit_arr[04] + math.floor((unit_arr[10] - unit_arr[2]) * unit_arr[19] + 0.5))
+			avg_skl = math.min(class_info_arr[3], unit_arr[05] + math.floor((unit_arr[10] - unit_arr[2]) * unit_arr[20] + 0.5))
+			avg_spd = math.min(class_info_arr[4], unit_arr[06] + math.floor((unit_arr[10] - unit_arr[2]) * unit_arr[21] + 0.5))
+			avg_def = math.min(class_info_arr[5], unit_arr[07] + math.floor((unit_arr[10] - unit_arr[2]) * unit_arr[22] + 0.5))
+			avg_res = math.min(class_info_arr[6], unit_arr[08] + math.floor((unit_arr[10] - unit_arr[2]) * unit_arr[23] + 0.5))
+			avg_lck = math.min(30, 				  unit_arr[09] + math.floor((unit_arr[10] - unit_arr[2]) * unit_arr[24] + 0.5))
+			Cdata['lvls_gained'] = unit_arr[25] - unit_arr[2]
+		end
 	end
+	-- We just leveled up
+	if (unit_arr[33] < Cdata['lvls_gained']) then
+		re_draw = 1
+	end
+	unit_arr[33] = Cdata['lvls_gained']
 	unit_arr[26] = Cdata['maxHP']-avg_hp
 	unit_arr[27] = Cdata['str']-avg_str
 	unit_arr[28] = Cdata['skl']-avg_skl
