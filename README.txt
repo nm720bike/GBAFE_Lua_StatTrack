@@ -7,11 +7,9 @@ This script currently works for all FE6 (J) FE7 (U) and FE8 (U)
 ----------------------------------------------------
 !!IMPORTANT!! Session Save information !!IMPORTANT!!
 ----------------------------------------------------
-When you stop the script it will save data about what pre-premoted level characters are at in session_data.csv
+This script auto-saves data about what pre-premoted level characters are at in session_data.csv
 
-This only happens if you stop the script nicely like toggling the script off. If you exit the LUA console or close the emulator it will not write to this file
-
-When you load the game and that file exists it will ask you if you'd like to load the session data
+When you load the game and that file exists it will automatically load that file
 
 You can manually edit this file. Just open it, use ctrl+f to find a character you've promoted, and enter their pre-promoted level and set the spot for "promoted" to 1
 
@@ -22,37 +20,17 @@ For FE8 trainees, the ppp_lvl is for the level they were at as a trainee when th
 !!IMPORTANT!! Session Save information !!IMPORTANT!!
 ----------------------------------------------------
 
+Commands:
 
-Default Hotkeys:
-	RngScrambler:
-	'R' - Display RNs on the Right Side
-	
-	StatTrack:
-	'Period' - moves stat-tracked units right
-	'Comma' - moves stat-tracked units left
-	'Slash' - changes color
-	'L' - Cycles order of displayed units
+There are a couple commands you can run in the LUA console that will do things:
+n() : cycles through who you're looking at, which lets you see more characters if more than 3 have leveled up
+t() : toggles printing of current RNG strings (kind of a mess)
+l() : loads session_data.csv
+s() : saves to session_data.csv
 
 
-Color change Instructions:
 
-If you want to change the colors available, edit the hex values in the variable color_arr. 
-The first value is the background color, and the second value is the border color. 
+Command change Instructions:
 
+If you wanna change these commands, scroll to the bottom of RNGscramblerMGBA_StatTrack.lua and change the function name
 
-Hotkey change Instructions (universal):
-
-Open the script in the "Utils" folder in a text editor of your choice.
-
-Example: Instead of 'U' -> 'L'
-CTRL + F - Search for "heldDown" (without the quotation marks)
-Replace 
-	['U'] = false
-With
-	['L'] = false
-	
-CTRL + F - Search for "function inputCheck"
-Replace 
-	if userInput.U and heldDown['U'] == false then
-With
-	if userInput.L and heldDown['L'] == false then
