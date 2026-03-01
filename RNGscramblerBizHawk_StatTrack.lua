@@ -69,8 +69,8 @@ local foreground_color = color_arr[0][2]
 currentGame = gameIDMap[gameID]
 print("Current game: "..currentGame)
 
--- Unit info is displayed as [ID] = {name, b_lvl, b_hp, b_str, b_skl, b_spd, b_def, b_res, b_lck, c_lvl, c_hp, c_str, c_skl, c_spd, c_def, c_res, c_lck, hp_g, str_g, skl_g, spd_g, def_g,  res_g, lck_g, pp_lvl, avg_hp, avg_str, avg_skl, avg_spd, avg_def, avg_res, avg_lck, total_lvls, promoted, ppp_lvl, promo_hp, promo_str, promo_skl, promo_spd, promo_def, promo_res}
---									[01,    02,    03,    04,    05,    06,    07,    08,    09,   10,    11,    12,    13,    14,    15,    16,    17,   18,    19,    20,   21,     22,    23,    24,    25,     26,      27,      28,      29,      30,       31,      32       33,         34,       35,      36,       37,        38,       39,         40          41]
+-- Unit info is displayed as [ID] = {name, b_lvl, b_hp, b_str, b_skl, b_spd, b_def, b_res, b_lck, c_lvl, c_hp, c_str, c_skl, c_spd, c_def, c_res, c_lck, hp_g, str_g, skl_g, spd_g, def_g,  res_g, lck_g, pp_lvl, avg_hp, avg_str, avg_skl, avg_spd, avg_def, avg_res, avg_lck, total_lvls, promoted, trainee_state, promo_hp, promo_str, promo_skl, promo_spd, promo_def, promo_res}
+--									[01,    02,    03,    04,    05,    06,    07,    08,    09,   10,    11,    12,    13,    14,    15,    16,    17,   18,    19,    20,   21,     22,    23,    24,    25,     26,      27,      28,      29,      30,       31,      32       33,         34,         35,         36,       37,        38,       39,         40          41]
 -- b_* = base stat. c_* = current stat. *_g = growth. avg_* = amount +- avg
 local UnitsLut = {}
 if currentGame == 'Sealed Sword J' then
@@ -241,7 +241,7 @@ end
 event.onexit(function()
     local file = io.open("session_data.csv", "w")
     if file then
-		file:write("KEY,NAME,PP_LVL,PROMOTED,PPP_LVLS\n")
+		file:write("KEY,NAME,PP_LVL,PROMOTED,TRAINEE_STATE\n")
 		for key, unit_info in pairs(UnitsLut) do
 			-- print(key)
 			if (key ~= 0xbadcafe) then
@@ -404,9 +404,6 @@ function checkForUserInput()
 	end
 end
 
-local ross_promo_added = 0
-local amelia_promo_added = 0
-local ewan_promo_added = 0
 
 --current data of who we're working on
 local Cdata = {
@@ -473,9 +470,6 @@ function updateLUT_stage2(char_number) -- ~7-15us on average
 	if unit_arr[34] == 0 and unit_arr[25] ~= 0 then
 		unit_arr[25] = lvl
 	end
-	if unit_arr[35] ~= 10 and unit_arr[35] ~= 0 then
-		unit_arr[35] = lvl
-	end
 	local maxHP = bytes[11+stat_mem_offset]
 	Cdata['maxHP'] = maxHP
 	unit_arr[11] = maxHP
@@ -534,7 +528,15 @@ function updateLUT_stage3() -- probably 20+ us at this point
 	local avg_lck = 0
 	-- handle the trainees first
 	-- add trainee promo bonuses here
-	if (unit_arr[35] ~= 0) then
+	if (unit_arr[35] > 0) then
+		if (unit_arr[35] == 1 and unit_arr[10] == 10) then
+			unit_arr[35] = 2 -- trainee unit is ready to promote, but not promoted yet
+		end
+		if (unit_arr[35] == 2 and unit_arr[10] == 1) then
+			unit_arr[35] = 3 -- trainee unit is promoted out of trainee class
+			unit_arr[25] = 1
+			re_draw = 1
+		end
 		if (Cdata['lookupKey'] == 0x8803E9C) then -- ross (I'm assuming pirate promotion. Sorry Hero Ross)
 			ppp_promo_gains = {2,2,0,1,1,0}
 		elseif (Cdata['lookupKey'] == 0x88040D8) then -- amelia (I'm assuming cav promotion. Sorry General Amelia)
@@ -550,33 +552,33 @@ function updateLUT_stage3() -- probably 20+ us at this point
 			promo_def_gain = class_info_arr[20]
 			promo_res_gain = class_info_arr[21]
 
-			avg_hp =  math.min(class_info_arr[1], math.floor(math.min(60, unit_arr[03] + (unit_arr[25] + unit_arr[35] - 2) * unit_arr[18] + ppp_promo_gains[1]) + (unit_arr[10] - 1) * unit_arr[18] + 0.5) + promo_hp_gain)
-			avg_str = math.min(class_info_arr[2], math.floor(math.min(20, unit_arr[04] + (unit_arr[25] + unit_arr[35] - 2) * unit_arr[19] + ppp_promo_gains[2]) + (unit_arr[10] - 1) * unit_arr[19] + 0.5) + promo_str_gain)
-			avg_skl = math.min(class_info_arr[3], math.floor(math.min(20, unit_arr[05] + (unit_arr[25] + unit_arr[35] - 2) * unit_arr[20] + ppp_promo_gains[3]) + (unit_arr[10] - 1) * unit_arr[20] + 0.5) + promo_skl_gain)
-			avg_spd = math.min(class_info_arr[4], math.floor(math.min(20, unit_arr[06] + (unit_arr[25] + unit_arr[35] - 2) * unit_arr[21] + ppp_promo_gains[4]) + (unit_arr[10] - 1) * unit_arr[21] + 0.5) + promo_spd_gain)
-			avg_def = math.min(class_info_arr[5], math.floor(math.min(20, unit_arr[07] + (unit_arr[25] + unit_arr[35] - 2) * unit_arr[22] + ppp_promo_gains[5]) + (unit_arr[10] - 1) * unit_arr[22] + 0.5) + promo_def_gain)
-			avg_res = math.min(class_info_arr[6], math.floor(math.min(20, unit_arr[08] + (unit_arr[25] + unit_arr[35] - 2) * unit_arr[23] + ppp_promo_gains[6]) + (unit_arr[10] - 1) * unit_arr[23] + 0.5) + promo_res_gain)
-			avg_lck = math.min(30               , math.floor(math.min(30, unit_arr[09] + (unit_arr[25] + unit_arr[35] - 2) * unit_arr[24]                     ) + (unit_arr[10] - 1) * unit_arr[24] + 0.5))
-			Cdata['lvls_gained'] = unit_arr[10] - 1 + unit_arr[25] - unit_arr[2] + unit_arr[35] - 1
+			avg_hp =  math.min(class_info_arr[1], math.floor(math.min(60, unit_arr[03] + (unit_arr[25] + 10 - 2) * unit_arr[18] + ppp_promo_gains[1]) + (unit_arr[10] - 1) * unit_arr[18] + 0.5) + promo_hp_gain)
+			avg_str = math.min(class_info_arr[2], math.floor(math.min(20, unit_arr[04] + (unit_arr[25] + 10 - 2) * unit_arr[19] + ppp_promo_gains[2]) + (unit_arr[10] - 1) * unit_arr[19] + 0.5) + promo_str_gain)
+			avg_skl = math.min(class_info_arr[3], math.floor(math.min(20, unit_arr[05] + (unit_arr[25] + 10 - 2) * unit_arr[20] + ppp_promo_gains[3]) + (unit_arr[10] - 1) * unit_arr[20] + 0.5) + promo_skl_gain)
+			avg_spd = math.min(class_info_arr[4], math.floor(math.min(20, unit_arr[06] + (unit_arr[25] + 10 - 2) * unit_arr[21] + ppp_promo_gains[4]) + (unit_arr[10] - 1) * unit_arr[21] + 0.5) + promo_spd_gain)
+			avg_def = math.min(class_info_arr[5], math.floor(math.min(20, unit_arr[07] + (unit_arr[25] + 10 - 2) * unit_arr[22] + ppp_promo_gains[5]) + (unit_arr[10] - 1) * unit_arr[22] + 0.5) + promo_def_gain)
+			avg_res = math.min(class_info_arr[6], math.floor(math.min(20, unit_arr[08] + (unit_arr[25] + 10 - 2) * unit_arr[23] + ppp_promo_gains[6]) + (unit_arr[10] - 1) * unit_arr[23] + 0.5) + promo_res_gain)
+			avg_lck = math.min(30               , math.floor(math.min(30, unit_arr[09] + (unit_arr[25] + 10 - 2) * unit_arr[24]                     ) + (unit_arr[10] - 1) * unit_arr[24] + 0.5))
+			Cdata['lvls_gained'] = unit_arr[10] - 1 + unit_arr[25] - unit_arr[2] + 10 - 1
 		else
-			if (unit_arr[35] == 10) then
-				avg_hp =  math.min(class_info_arr[1], unit_arr[03] + math.floor((unit_arr[10] + unit_arr[35] - 2) * unit_arr[18] + 0.5 + ppp_promo_gains[1]))
-				avg_str = math.min(class_info_arr[2], unit_arr[04] + math.floor((unit_arr[10] + unit_arr[35] - 2) * unit_arr[19] + 0.5 + ppp_promo_gains[2]))
-				avg_skl = math.min(class_info_arr[3], unit_arr[05] + math.floor((unit_arr[10] + unit_arr[35] - 2) * unit_arr[20] + 0.5 + ppp_promo_gains[3]))
-				avg_spd = math.min(class_info_arr[4], unit_arr[06] + math.floor((unit_arr[10] + unit_arr[35] - 2) * unit_arr[21] + 0.5 + ppp_promo_gains[4]))
-				avg_def = math.min(class_info_arr[5], unit_arr[07] + math.floor((unit_arr[10] + unit_arr[35] - 2) * unit_arr[22] + 0.5 + ppp_promo_gains[5]))
-				avg_res = math.min(class_info_arr[6], unit_arr[08] + math.floor((unit_arr[10] + unit_arr[35] - 2) * unit_arr[23] + 0.5 + ppp_promo_gains[6]))
-				avg_lck = math.min(30, 				  unit_arr[09] + math.floor((unit_arr[10] + unit_arr[35] - 2) * unit_arr[24] + 0.5))
-				Cdata['lvls_gained'] = unit_arr[25] - unit_arr[2] + unit_arr[35] - 1
+			if (unit_arr[35] == 3) then
+				avg_hp =  math.min(class_info_arr[1], unit_arr[03] + math.floor((unit_arr[10] + 10 - 2) * unit_arr[18] + 0.5 + ppp_promo_gains[1]))
+				avg_str = math.min(class_info_arr[2], unit_arr[04] + math.floor((unit_arr[10] + 10 - 2) * unit_arr[19] + 0.5 + ppp_promo_gains[2]))
+				avg_skl = math.min(class_info_arr[3], unit_arr[05] + math.floor((unit_arr[10] + 10 - 2) * unit_arr[20] + 0.5 + ppp_promo_gains[3]))
+				avg_spd = math.min(class_info_arr[4], unit_arr[06] + math.floor((unit_arr[10] + 10 - 2) * unit_arr[21] + 0.5 + ppp_promo_gains[4]))
+				avg_def = math.min(class_info_arr[5], unit_arr[07] + math.floor((unit_arr[10] + 10 - 2) * unit_arr[22] + 0.5 + ppp_promo_gains[5]))
+				avg_res = math.min(class_info_arr[6], unit_arr[08] + math.floor((unit_arr[10] + 10 - 2) * unit_arr[23] + 0.5 + ppp_promo_gains[6]))
+				avg_lck = math.min(30, 				  unit_arr[09] + math.floor((unit_arr[10] + 10 - 2) * unit_arr[24] + 0.5))
+				Cdata['lvls_gained'] = unit_arr[25] - unit_arr[2] + 10 - 1
 			else
-				avg_hp =  math.min(class_info_arr[1], unit_arr[03] + math.floor((unit_arr[35] - 1) * unit_arr[18] + 0.5))
-				avg_str = math.min(class_info_arr[2], unit_arr[04] + math.floor((unit_arr[35] - 1) * unit_arr[19] + 0.5))
-				avg_skl = math.min(class_info_arr[3], unit_arr[05] + math.floor((unit_arr[35] - 1) * unit_arr[20] + 0.5))
-				avg_spd = math.min(class_info_arr[4], unit_arr[06] + math.floor((unit_arr[35] - 1) * unit_arr[21] + 0.5))
-				avg_def = math.min(class_info_arr[5], unit_arr[07] + math.floor((unit_arr[35] - 1) * unit_arr[22] + 0.5))
-				avg_res = math.min(class_info_arr[6], unit_arr[08] + math.floor((unit_arr[35] - 1) * unit_arr[23] + 0.5))
-				avg_lck = math.min(30, 				  unit_arr[09] + math.floor((unit_arr[35] - 1) * unit_arr[24] + 0.5))
-				Cdata['lvls_gained'] = unit_arr[35] - unit_arr[2]
+				avg_hp =  math.min(class_info_arr[1], unit_arr[03] + math.floor((unit_arr[10] - 1) * unit_arr[18] + 0.5))
+				avg_str = math.min(class_info_arr[2], unit_arr[04] + math.floor((unit_arr[10] - 1) * unit_arr[19] + 0.5))
+				avg_skl = math.min(class_info_arr[3], unit_arr[05] + math.floor((unit_arr[10] - 1) * unit_arr[20] + 0.5))
+				avg_spd = math.min(class_info_arr[4], unit_arr[06] + math.floor((unit_arr[10] - 1) * unit_arr[21] + 0.5))
+				avg_def = math.min(class_info_arr[5], unit_arr[07] + math.floor((unit_arr[10] - 1) * unit_arr[22] + 0.5))
+				avg_res = math.min(class_info_arr[6], unit_arr[08] + math.floor((unit_arr[10] - 1) * unit_arr[23] + 0.5))
+				avg_lck = math.min(30, 				  unit_arr[09] + math.floor((unit_arr[10] - 1) * unit_arr[24] + 0.5))
+				Cdata['lvls_gained'] = unit_arr[10] - unit_arr[2]
 			end
 		end
 	else -- not a trainee (thank goodness)

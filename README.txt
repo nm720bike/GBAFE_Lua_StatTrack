@@ -14,6 +14,7 @@ This only happens if you stop the script nicely like toggling the script off. If
 When you load the game and that file exists it will ask you if you'd like to load the session data
 
 You can manually edit this file. Just open it, use ctrl+f to find a character you've promoted, and enter their pre-promoted level and set the spot for "promoted" to 1
+	* if they're a trainee unit, and they've promoted out of their trainee class, set trainee state to 3
 
 If you wish to pass a save to someone, make sure to give them this file too so that the stat tracker works as intended
 
