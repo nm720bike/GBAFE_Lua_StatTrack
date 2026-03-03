@@ -9,15 +9,16 @@ This script currently works for all FE6 (J) FE7 (U) and FE8 (U)
 ----------------------------------------------------
 When you stop the script it will save data about what pre-premoted level characters are at in session_data.csv
 
-This only happens if you stop the script nicely like toggling the script off. If you exit the LUA console or close the emulator it will not write to this file
+This happens every time a character levels up
 
-When you load the game and that file exists it will ask you if you'd like to load the session data
+When you load the game and that file exists it will automatically load that file
 
 You can manually edit this file. Just open it, use ctrl+f to find a character you've promoted, and enter their pre-promoted level and set the spot for "promoted" to 1
+	* if they're a trainee unit, and they've promoted out of their trainee class, set trainee state to 3
 
 If you wish to pass a save to someone, make sure to give them this file too so that the stat tracker works as intended
 
-For FE8 trainees, the ppp_lvl is for the level they were at as a trainee when they promoted
+If you want to start a new run, delete the file for now (I'll make this better in the future)
 ----------------------------------------------------
 !!IMPORTANT!! Session Save information !!IMPORTANT!!
 ----------------------------------------------------
@@ -28,10 +29,8 @@ Default Hotkeys:
 	'R' - Display RNs on the Right Side
 	
 	StatTrack:
-	'Period' - moves stat-tracked units right
-	'Comma' - moves stat-tracked units left
-	'Slash' - changes color
-	'L' - Cycles order of displayed units
+	'slash' - changes color
+	'L' - Display current unit. If you press it again when a unit is displayed, it cycles
 
 
 Color change Instructions:
