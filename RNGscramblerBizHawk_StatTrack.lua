@@ -236,9 +236,7 @@ else
 	}
 end
 
--- have some way to load in UnitsLut parameters here
-
-event.onexit(function()
+function saveSessionData()
     local file = io.open("session_data.csv", "w")
     if file then
 		file:write("KEY,NAME,PP_LVL,PROMOTED,TRAINEE_STATE\n")
@@ -249,14 +247,27 @@ event.onexit(function()
 			end
 		end
 		file:write("num_displayed_units"..","..num_displayed_units)
-		-- do a for loop for all the characters and write the important data here
-		-- important data includes: pp_lvl [25], total_lvls [33], promoted [34], ppp_lvls [35]
-        -- file:write(table.concat(UnitsLut, "\n"))
         file:close()
     end
-end)
+end
 
 local file_r = io.open("session_data.csv", "r")
+
+-- Load just the num_displayed_units value
+if file_r then
+	for line in io.lines("session_data.csv") do
+		local columns = {}
+		for value in line:gmatch("([^,]+)") do
+			table.insert(columns, value)
+		end
+		if(columns[1] == 'num_displayed_units') then
+			num_displayed_units = tonumber(columns[2])
+			re_draw = 1
+		end
+	end
+end
+
+
 function loadSessionData()
 	if file_r then
 		for line in io.lines("session_data.csv") do
@@ -277,23 +288,6 @@ function loadSessionData()
 				re_draw = 1
 			end
 		end
-	end
-end
-
---create prompt
-if file_r then
-	if emu.framecount() > 60 then
-		local form = forms.newform(350, 100, "Session Manager")
-		forms.label(form, "Would you like to load your previous session data?\rWARNING: Saying no will overwrite session_data.csv!", 20, 20, 310, 40)
-		forms.button(form, "Yes", function()
-			loadSessionData()
-			forms.destroy(form)
-		end, 60, 60, 100, 30)
-		forms.button(form, "No", function()
-			forms.destroy(form)
-		end, 190, 60, 100, 30)
-	else
-		loadSessionData()
 	end
 end
 
@@ -428,22 +422,48 @@ local name_horiz_offset = 37
 local name_vertical_offset = 0x8803D30
 local memory_diff_value = 52
 local class_promo_offset = 0x29
+local initial_map_id = 0
+local chap_start_addr = 0x0202BCF4
+local map_id_addr = 0x0202BCFE
 if currentGame == 'Sealed Sword J' then
 	stat_mem_offset = -2
 	name_horiz_offset = 69
 	name_vertical_offset = 0x8607688
 	memory_diff_value = 48
 	class_promo_offset = 0x25
+	initial_map_id = 1
+	chap_start_addr = 0x0202AA4C
+	map_id_addr = 0x0202AA56
 elseif (currentGame == 'Blazing Sword U') then
 	name_vertical_offset = 0x8BDCE18
 	name_horiz_offset = 101
+	initial_map_id = 13 -- This is Hector Normal mode's start. It's different for other routes
+	chap_start_addr = 0x0202BBFC
+	map_id_addr = 0x0202BC06
 end
 
+local lastChapterStartClock = 0
 function updateLUT_stage1(char_number) -- ~3us on average
 	addr = baseAddress + (char_number*0x48)
 	local Rom_unit = memory.read_u32_le(addr, "System Bus")
 	Cdata['lookupKey'] = Rom_unit
 	unit_arr = UnitsLut[Cdata['lookupKey']]
+	local ChapterStartClock = memory.read_u32_le(chap_start_addr, "System Bus")
+	if (ChapterStartClock ~= lastChapterStartClock) then
+		if lastChapterStartClock == 0 then -- We loaded a save from the menu or started a new game
+			local MapID = memory.readbyte(map_id_addr)
+			if MapID ~= initial_map_id then -- we loaded into any map that's not the prologue/chap1, so load session data
+				loadSessionData()
+				print("Session data loaded")
+				print(MapID)
+			end
+		else
+			saveSessionData()
+			print("Session data saved to session_data.csv")
+		end
+		lastChapterStartClock = ChapterStartClock
+	end
+	
 end
 
 function updateLUT_stage2(char_number) -- ~7-15us on average
@@ -631,31 +651,33 @@ end
 
 function updateLUT_stage4() -- ~1.4us on average
 	if (Cdata['lvls_gained'] > 0) then 
-		local i = #CurrentUnits
-		local inserted = false
-		while i > 0 do
-			if CurrentUnits[i] == Cdata['lookupKey'] and not(inserted) then
-				return
-			end
-			if (inserted) then
-				if Cdata['lookupKey'] == CurrentUnits[i] then
-					table.remove(CurrentUnits,i)
-					re_draw = 1
+		if (unit_arr[11] > 0) then
+			local i = #CurrentUnits
+			local inserted = false
+			while i > 0 do
+				if CurrentUnits[i] == Cdata['lookupKey'] and not(inserted) then
+					return
 				end
-			elseif (Cdata['lvls_gained'] > UnitsLut[CurrentUnits[i]][33]) then
-				table.insert(CurrentUnits, i+1, Cdata['lookupKey'])
-				inserted = true
-				re_draw = 1
-				i = i + 1
+				if (inserted) then
+					if Cdata['lookupKey'] == CurrentUnits[i] then
+						table.remove(CurrentUnits,i)
+						re_draw = 1
+					end
+				elseif (Cdata['lvls_gained'] > UnitsLut[CurrentUnits[i]][33]) then
+					table.insert(CurrentUnits, i+1, Cdata['lookupKey'])
+					inserted = true
+					re_draw = 1
+					i = i + 1
+				end
+				i = i - 1;
 			end
-			i = i - 1;
-		end
-		if #CurrentUnits == 0 then
-			table.insert(CurrentUnits, 1, Cdata['lookupKey'])
-			re_draw = 1
-		elseif (not(inserted) and Cdata['lvls_gained'] > 0 and not(contains(CurrentUnits, Cdata['lookupKey']))) then
-			table.insert(CurrentUnits, 1, Cdata['lookupKey'])
-			re_draw = 1
+			if #CurrentUnits == 0 then
+				table.insert(CurrentUnits, 1, Cdata['lookupKey'])
+				re_draw = 1
+			elseif (not(inserted) and Cdata['lvls_gained'] > 0 and not(contains(CurrentUnits, Cdata['lookupKey']))) then
+				table.insert(CurrentUnits, 1, Cdata['lookupKey'])
+				re_draw = 1
+			end
 		end
 	end
 end
