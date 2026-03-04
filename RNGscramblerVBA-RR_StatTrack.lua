@@ -286,24 +286,34 @@ end
 function saveSessionData()
     local file = io.open("session_data.csv", "w")
     if file then
-		file:write("KEY,NAME,PP_LVL,PROMOTED,PPP_LVLS\n")
+		file:write("KEY,NAME,PP_LVL,PROMOTED,TRAINEE_STATE\n")
 		for key, unit_info in pairs(UnitsLut) do
-			-- print(key)
 			if (key ~= 0xbadcafe) then
 				file:write(key..","..unit_info[1]..","..unit_info[25]..","..unit_info[34]..","..unit_info[35].."\n")
 			end
 		end
 		file:write("num_displayed_units"..","..num_displayed_units)
-		-- do a for loop for all the characters and write the important data here
-		-- important data includes: pp_lvl [25], total_lvls [33], promoted [34], ppp_lvls [35]
-        -- file:write(table.concat(UnitsLut, "\n"))
         file:close()
     end
 end
 
 local file_r = io.open("session_data.csv", "r")
+
+-- Load just the num_displayed_units value
+if file_r then
+	for line in io.lines("session_data.csv") do
+		local columns = {}
+		for value in line:gmatch("([^,]+)") do
+			table.insert(columns, value)
+		end
+		if(columns[1] == 'num_displayed_units') then
+			num_displayed_units = tonumber(columns[2])
+			re_draw = 1
+		end
+	end
+end
+
 function loadSessionData()
-	print("Loading previous session data...")
 	if file_r then
 		for line in io.lines("session_data.csv") do
 			local columns = {}
@@ -325,12 +335,6 @@ function loadSessionData()
 		end
 	end
 end
-
--- load previous session data if file exists
-if file_r then
-    loadSessionData()
-end
-
 
 local CurrentUnits = {}
 
@@ -438,10 +442,6 @@ function isDisplayActive()
 	return elapsed < display_duration
 end
 
-local ross_promo_added = 0
-local amelia_promo_added = 0
-local ewan_promo_added = 0
-
 --current data of who we're working on
 local Cdata = {
 	['lookupKey'] = 0,
@@ -465,22 +465,47 @@ local name_horiz_offset = 37
 local name_vertical_offset = 0x8803D30
 local memory_diff_value = 52
 local class_promo_offset = 0x29
+local initial_map_id = 0
+local chap_start_addr = 0x0202BCF4
+local map_id_addr = 0x0202BCFE
 if currentGame == 'Sealed Sword J' then
 	stat_mem_offset = -2
 	name_horiz_offset = 69
 	name_vertical_offset = 0x8607688
 	memory_diff_value = 48
 	class_promo_offset = 0x25
+	initial_map_id = 1
+	chap_start_addr = 0x0202AA4C
+	map_id_addr = 0x0202AA56
 elseif (currentGame == 'Blazing Sword U') then
 	name_vertical_offset = 0x8BDCE18
 	name_horiz_offset = 101
+	initial_map_id = 13 -- This is Hector Normal mode's start. It's different for other routes
+	chap_start_addr = 0x0202BBFC
+	map_id_addr = 0x0202BC06
 end
 
+local lastChapterStartClock = 0
 function updateLUT_stage1(char_number) -- ~3us on average
-    addr = baseAddress + (char_number*0x48)
-    local Rom_unit = read_u32_le(addr)
-    Cdata['lookupKey'] = Rom_unit
-    unit_arr = UnitsLut[Cdata['lookupKey']]
+	addr = baseAddress + (char_number*0x48)
+	local Rom_unit = read_u32_le(addr)
+	Cdata['lookupKey'] = Rom_unit
+	unit_arr = UnitsLut[Cdata['lookupKey']]
+	local ChapterStartClock = read_u32_le(chap_start_addr)
+	if (ChapterStartClock ~= lastChapterStartClock and ChapterStartClock ~= 0) then
+		if lastChapterStartClock == 0 then -- We loaded a save from the menu or started a new game
+			local MapID = memory.readbyte(map_id_addr)
+			if MapID ~= initial_map_id then -- we loaded into any map that's not the prologue/chap1, so load session data
+				loadSessionData()
+				print("Session data loaded")
+			end
+		else
+			saveSessionData()
+			print("Session data saved to session_data.csv")
+		end
+		lastChapterStartClock = ChapterStartClock
+	end
+	
 end
 
 function updateLUT_stage2(char_number) -- ~7-15us on average
@@ -500,16 +525,12 @@ function updateLUT_stage2(char_number) -- ~7-15us on average
             unit_arr[34] = 1
             re_draw = 1
         else
-			-- print("We're returning!")
-            -- return
+            return
         end
     end	
 	-- If we're not promoted and have gained a level, add it to pp_lvl
 	if unit_arr[34] == 0 and unit_arr[25] ~= 0 then
 		unit_arr[25] = lvl
-	end
-	if unit_arr[35] ~= 10 and unit_arr[35] ~= 0 then
-		unit_arr[35] = lvl
 	end
 	local maxHP = bytes[11+stat_mem_offset]
 	Cdata['maxHP'] = maxHP
@@ -570,13 +591,14 @@ function updateLUT_stage3() -- probably 20+ us at this point
 	local lvl_gained = 0
 	-- handle the trainees first
 	-- add trainee promo bonuses here
-	if (unit_arr[35] ~= 0) then
-		if (Cdata['lookupKey'] == 0x8803E9C) then -- ross (I'm assuming pirate promotion. Sorry Hero Ross)
-			ppp_promo_gains = {2,2,0,1,1,0}
-		elseif (Cdata['lookupKey'] == 0x88040D8) then -- amelia (I'm assuming cav promotion. Sorry General Amelia)
-			ppp_promo_gains = {1,0,2,2,0,2}
-		else
-			ppp_promo_gains = {1,0,2,2,0,2}
+	if (unit_arr[35] > 0) then
+		if (unit_arr[35] == 1 and unit_arr[10] == 10) then
+			unit_arr[35] = 2 -- trainee unit is ready to promote, but not promoted yet
+		end
+		if (unit_arr[35] == 2 and unit_arr[10] == 1) then
+			unit_arr[35] = 3 -- trainee unit is promoted out of trainee class
+			unit_arr[25] = 1
+			re_draw = 1
 		end
 		if unit_arr[34] == 1 then -- if promoted
 			promo_hp_gain = class_info_arr[16]
@@ -586,33 +608,33 @@ function updateLUT_stage3() -- probably 20+ us at this point
 			promo_def_gain = class_info_arr[20]
 			promo_res_gain = class_info_arr[21]
 
-			avg_hp =  math.min(class_info_arr[1], math.floor(math.min(60, unit_arr[03] + (unit_arr[25] + unit_arr[35] - 2) * unit_arr[18] + ppp_promo_gains[1]) + (unit_arr[10] - 1) * unit_arr[18] + 0.5) + promo_hp_gain)
-			avg_str = math.min(class_info_arr[2], math.floor(math.min(20, unit_arr[04] + (unit_arr[25] + unit_arr[35] - 2) * unit_arr[19] + ppp_promo_gains[2]) + (unit_arr[10] - 1) * unit_arr[19] + 0.5) + promo_str_gain)
-			avg_skl = math.min(class_info_arr[3], math.floor(math.min(20, unit_arr[05] + (unit_arr[25] + unit_arr[35] - 2) * unit_arr[20] + ppp_promo_gains[3]) + (unit_arr[10] - 1) * unit_arr[20] + 0.5) + promo_skl_gain)
-			avg_spd = math.min(class_info_arr[4], math.floor(math.min(20, unit_arr[06] + (unit_arr[25] + unit_arr[35] - 2) * unit_arr[21] + ppp_promo_gains[4]) + (unit_arr[10] - 1) * unit_arr[21] + 0.5) + promo_spd_gain)
-			avg_def = math.min(class_info_arr[5], math.floor(math.min(20, unit_arr[07] + (unit_arr[25] + unit_arr[35] - 2) * unit_arr[22] + ppp_promo_gains[5]) + (unit_arr[10] - 1) * unit_arr[22] + 0.5) + promo_def_gain)
-			avg_res = math.min(class_info_arr[6], math.floor(math.min(20, unit_arr[08] + (unit_arr[25] + unit_arr[35] - 2) * unit_arr[23] + ppp_promo_gains[6]) + (unit_arr[10] - 1) * unit_arr[23] + 0.5) + promo_res_gain)
-			avg_lck = math.min(30               , math.floor(math.min(30, unit_arr[09] + (unit_arr[25] + unit_arr[35] - 2) * unit_arr[24]                     ) + (unit_arr[10] - 1) * unit_arr[24] + 0.5))
-			Cdata['lvls_gained'] = unit_arr[10] - 1 + unit_arr[25] - unit_arr[2] + unit_arr[35] - 1
+			avg_hp =  math.min(class_info_arr[1], math.floor(math.min(60, unit_arr[03] + (unit_arr[25] + 10 - 2) * unit_arr[18] + ppp_promo_gains[1]) + (unit_arr[10] - 1) * unit_arr[18] + 0.5) + promo_hp_gain)
+			avg_str = math.min(class_info_arr[2], math.floor(math.min(20, unit_arr[04] + (unit_arr[25] + 10 - 2) * unit_arr[19] + ppp_promo_gains[2]) + (unit_arr[10] - 1) * unit_arr[19] + 0.5) + promo_str_gain)
+			avg_skl = math.min(class_info_arr[3], math.floor(math.min(20, unit_arr[05] + (unit_arr[25] + 10 - 2) * unit_arr[20] + ppp_promo_gains[3]) + (unit_arr[10] - 1) * unit_arr[20] + 0.5) + promo_skl_gain)
+			avg_spd = math.min(class_info_arr[4], math.floor(math.min(20, unit_arr[06] + (unit_arr[25] + 10 - 2) * unit_arr[21] + ppp_promo_gains[4]) + (unit_arr[10] - 1) * unit_arr[21] + 0.5) + promo_spd_gain)
+			avg_def = math.min(class_info_arr[5], math.floor(math.min(20, unit_arr[07] + (unit_arr[25] + 10 - 2) * unit_arr[22] + ppp_promo_gains[5]) + (unit_arr[10] - 1) * unit_arr[22] + 0.5) + promo_def_gain)
+			avg_res = math.min(class_info_arr[6], math.floor(math.min(20, unit_arr[08] + (unit_arr[25] + 10 - 2) * unit_arr[23] + ppp_promo_gains[6]) + (unit_arr[10] - 1) * unit_arr[23] + 0.5) + promo_res_gain)
+			avg_lck = math.min(30               , math.floor(math.min(30, unit_arr[09] + (unit_arr[25] + 10 - 2) * unit_arr[24]                     ) + (unit_arr[10] - 1) * unit_arr[24] + 0.5))
+			Cdata['lvls_gained'] = unit_arr[10] - 1 + unit_arr[25] - unit_arr[2] + 10 - 1
 		else
-			if (unit_arr[35] == 10) then
-				avg_hp =  math.min(class_info_arr[1], unit_arr[03] + math.floor((unit_arr[10] + unit_arr[35] - 2) * unit_arr[18] + 0.5 + ppp_promo_gains[1]))
-				avg_str = math.min(class_info_arr[2], unit_arr[04] + math.floor((unit_arr[10] + unit_arr[35] - 2) * unit_arr[19] + 0.5 + ppp_promo_gains[2]))
-				avg_skl = math.min(class_info_arr[3], unit_arr[05] + math.floor((unit_arr[10] + unit_arr[35] - 2) * unit_arr[20] + 0.5 + ppp_promo_gains[3]))
-				avg_spd = math.min(class_info_arr[4], unit_arr[06] + math.floor((unit_arr[10] + unit_arr[35] - 2) * unit_arr[21] + 0.5 + ppp_promo_gains[4]))
-				avg_def = math.min(class_info_arr[5], unit_arr[07] + math.floor((unit_arr[10] + unit_arr[35] - 2) * unit_arr[22] + 0.5 + ppp_promo_gains[5]))
-				avg_res = math.min(class_info_arr[6], unit_arr[08] + math.floor((unit_arr[10] + unit_arr[35] - 2) * unit_arr[23] + 0.5 + ppp_promo_gains[6]))
-				avg_lck = math.min(30, 				  unit_arr[09] + math.floor((unit_arr[10] + unit_arr[35] - 2) * unit_arr[24] + 0.5))
-				Cdata['lvls_gained'] = unit_arr[25] - unit_arr[2] + unit_arr[35] - 1
+			if (unit_arr[35] == 3) then
+				avg_hp =  math.min(class_info_arr[1], unit_arr[03] + math.floor((unit_arr[10] + 10 - 2) * unit_arr[18] + 0.5 + ppp_promo_gains[1]))
+				avg_str = math.min(class_info_arr[2], unit_arr[04] + math.floor((unit_arr[10] + 10 - 2) * unit_arr[19] + 0.5 + ppp_promo_gains[2]))
+				avg_skl = math.min(class_info_arr[3], unit_arr[05] + math.floor((unit_arr[10] + 10 - 2) * unit_arr[20] + 0.5 + ppp_promo_gains[3]))
+				avg_spd = math.min(class_info_arr[4], unit_arr[06] + math.floor((unit_arr[10] + 10 - 2) * unit_arr[21] + 0.5 + ppp_promo_gains[4]))
+				avg_def = math.min(class_info_arr[5], unit_arr[07] + math.floor((unit_arr[10] + 10 - 2) * unit_arr[22] + 0.5 + ppp_promo_gains[5]))
+				avg_res = math.min(class_info_arr[6], unit_arr[08] + math.floor((unit_arr[10] + 10 - 2) * unit_arr[23] + 0.5 + ppp_promo_gains[6]))
+				avg_lck = math.min(30, 				  unit_arr[09] + math.floor((unit_arr[10] + 10 - 2) * unit_arr[24] + 0.5))
+				Cdata['lvls_gained'] = unit_arr[25] - unit_arr[2] + 10 - 1
 			else
-				avg_hp =  math.min(class_info_arr[1], unit_arr[03] + math.floor((unit_arr[35] - 1) * unit_arr[18] + 0.5))
-				avg_str = math.min(class_info_arr[2], unit_arr[04] + math.floor((unit_arr[35] - 1) * unit_arr[19] + 0.5))
-				avg_skl = math.min(class_info_arr[3], unit_arr[05] + math.floor((unit_arr[35] - 1) * unit_arr[20] + 0.5))
-				avg_spd = math.min(class_info_arr[4], unit_arr[06] + math.floor((unit_arr[35] - 1) * unit_arr[21] + 0.5))
-				avg_def = math.min(class_info_arr[5], unit_arr[07] + math.floor((unit_arr[35] - 1) * unit_arr[22] + 0.5))
-				avg_res = math.min(class_info_arr[6], unit_arr[08] + math.floor((unit_arr[35] - 1) * unit_arr[23] + 0.5))
-				avg_lck = math.min(30, 				  unit_arr[09] + math.floor((unit_arr[35] - 1) * unit_arr[24] + 0.5))
-				Cdata['lvls_gained'] = unit_arr[35] - unit_arr[2]
+				avg_hp =  math.min(class_info_arr[1], unit_arr[03] + math.floor((unit_arr[10] - 1) * unit_arr[18] + 0.5))
+				avg_str = math.min(class_info_arr[2], unit_arr[04] + math.floor((unit_arr[10] - 1) * unit_arr[19] + 0.5))
+				avg_skl = math.min(class_info_arr[3], unit_arr[05] + math.floor((unit_arr[10] - 1) * unit_arr[20] + 0.5))
+				avg_spd = math.min(class_info_arr[4], unit_arr[06] + math.floor((unit_arr[10] - 1) * unit_arr[21] + 0.5))
+				avg_def = math.min(class_info_arr[5], unit_arr[07] + math.floor((unit_arr[10] - 1) * unit_arr[22] + 0.5))
+				avg_res = math.min(class_info_arr[6], unit_arr[08] + math.floor((unit_arr[10] - 1) * unit_arr[23] + 0.5))
+				avg_lck = math.min(30, 				  unit_arr[09] + math.floor((unit_arr[10] - 1) * unit_arr[24] + 0.5))
+				Cdata['lvls_gained'] = unit_arr[10] - unit_arr[2]
 			end
 		end
 	else -- not a trainee (thank goodness)
@@ -729,14 +751,10 @@ end
 function drawUnit(unitIndex)
 	-- no valid unit? abort
 	local opacity = math.min(((display_duration - (emu.framecount() - display_frame_start))/display_duration) * 2, .90)
-	-- print(unitIndex)
-	-- print(CurrentUnits)
 	if CurrentUnits[unitIndex+1] == nil then return end
 	unitAddr = CurrentUnits[unitIndex+1]
 	local unitInfo = UnitsLut[unitAddr]
 	if unitInfo[1] == '' then return end
-	-- print(unitAddr)
-	-- print(unitInfo[1])
 	if unitIndex < 0 or unitIndex >= #CurrentUnits then return end
 	local unitAddr = CurrentUnits[unitIndex+1]
 	if unitAddr == 0xbadcafe then return end
@@ -746,8 +764,6 @@ function drawUnit(unitIndex)
 	local fg_color = colorWithOpacity(foreground_color, opacity)
 	local bg_color = colorWithOpacity(background_color, opacity)
 	
-
-	-- print(unitInfo[1])
 	-- background and borders
 	gui.box(x0, 0, x0+width_unit, 122, bg_color, fg_color)
 	gui.line(x0+15, 0, x0+15, 121, fg_color)
@@ -830,7 +846,6 @@ while true do
 
 	if (re_draw == 1) then
 		display_frame_start = emu.framecount()
-		saveSessionData()
 		draw()
 		last_num_displayed = num_displayed_units
 		re_draw = 0

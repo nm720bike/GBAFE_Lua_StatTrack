@@ -1,4 +1,5 @@
-README for GBA FE Lua StatTrack script.
+README for GBA FE Lua StatTrack script - VBA-RR Version.
+This LUA script was ported from the main branch (BizHawk version) with the help of AI
 
 Credit to Dondon151 for the RNG scrambler functionality of this script. And shoutout to Geene whose scripts I borrowed some insiration from and whose readme I copied from
 
@@ -7,18 +8,15 @@ This script currently works for all FE6 (J) FE7 (U) and FE8 (U)
 ----------------------------------------------------
 !!IMPORTANT!! Session Save information !!IMPORTANT!!
 ----------------------------------------------------
-When you stop the script it will save data about what pre-premoted level characters are at in session_data.csv
+Whenever you save the game (enter a new chapter) the game will save some data to a file called session_data.csv
+ - This file keeps track of who's promoted and at what level so the stat tracker can accurately calculate averages
 
-This happens every time a character levels up
-
-When you load the game and that file exists it will automatically load that file
+When you load the game into any chapter but the prologue, and that file exists, it will load it
 
 You can manually edit this file. Just open it, use ctrl+f to find a character you've promoted, and enter their pre-promoted level and set the spot for "promoted" to 1
 	* if they're a trainee unit, and they've promoted out of their trainee class, set trainee state to 3
 
 If you wish to pass a save to someone, make sure to give them this file too so that the stat tracker works as intended
-
-If you want to start a new run, delete the file for now (I'll make this better in the future)
 ----------------------------------------------------
 !!IMPORTANT!! Session Save information !!IMPORTANT!!
 ----------------------------------------------------
