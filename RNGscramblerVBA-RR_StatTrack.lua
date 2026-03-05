@@ -41,7 +41,7 @@ local num_displayed_units = 1
 local last_num_displayed = 1
 local baseFontSize = 3
 local width = 110
-local re_draw = 1
+local re_draw = 0
 
 -- GUI Display state
 local display_state = nil  -- nil, 'levelup', or 'l_pressed'
@@ -299,20 +299,6 @@ end
 
 local file_r = io.open("session_data.csv", "r")
 
--- Load just the num_displayed_units value
-if file_r then
-	for line in io.lines("session_data.csv") do
-		local columns = {}
-		for value in line:gmatch("([^,]+)") do
-			table.insert(columns, value)
-		end
-		if(columns[1] == 'num_displayed_units') then
-			num_displayed_units = tonumber(columns[2])
-			re_draw = 1
-		end
-	end
-end
-
 function loadSessionData()
 	if file_r then
 		for line in io.lines("session_data.csv") do
@@ -330,7 +316,6 @@ function loadSessionData()
 			end
 			if(columns[1] == 'num_displayed_units') then
 				num_displayed_units = tonumber(columns[2])
-				re_draw = 1
 			end
 		end
 	end
@@ -438,6 +423,10 @@ end
 
 -- Check if display window should still be open
 function isDisplayActive()
+	if (emu.framecount() < display_duration) then
+		display_frame_start = 0
+		return false
+	end
 	local elapsed = emu.framecount() - display_frame_start
 	return elapsed < display_duration
 end
@@ -465,45 +454,51 @@ local name_horiz_offset = 37
 local name_vertical_offset = 0x8803D30
 local memory_diff_value = 52
 local class_promo_offset = 0x29
-local initial_map_id = 0
 local chap_start_addr = 0x0202BCF4
 local map_id_addr = 0x0202BCFE
+local record_turns_initial_addr = 0x0203ECf4
 if currentGame == 'Sealed Sword J' then
 	stat_mem_offset = -2
 	name_horiz_offset = 69
 	name_vertical_offset = 0x8607688
 	memory_diff_value = 48
 	class_promo_offset = 0x25
-	initial_map_id = 1
 	chap_start_addr = 0x0202AA4C
 	map_id_addr = 0x0202AA56
+	record_turns_initial_addr = 0x0203D994
 elseif (currentGame == 'Blazing Sword U') then
 	name_vertical_offset = 0x8BDCE18
 	name_horiz_offset = 101
-	initial_map_id = 13 -- This is Hector Normal mode's start. It's different for other routes
 	chap_start_addr = 0x0202BBFC
 	map_id_addr = 0x0202BC06
+	record_turns_initial_addr = 0x0203EC00
 end
 
-local lastChapterStartClock = 0
+local lastMapID = 0
+local session_data_counter = 0
 function updateLUT_stage1(char_number) -- ~3us on average
 	addr = baseAddress + (char_number*0x48)
 	local Rom_unit = read_u32_le(addr)
 	Cdata['lookupKey'] = Rom_unit
 	unit_arr = UnitsLut[Cdata['lookupKey']]
-	local ChapterStartClock = read_u32_le(chap_start_addr)
-	if (ChapterStartClock ~= lastChapterStartClock and ChapterStartClock ~= 0) then
-		if lastChapterStartClock == 0 then -- We loaded a save from the menu or started a new game
-			local MapID = memory.readbyte(map_id_addr)
-			if MapID ~= initial_map_id then -- we loaded into any map that's not the prologue/chap1, so load session data
+	local MapID = memory.readbyte(map_id_addr)
+	-- I did this 10 frame wait thing to do session data stuff because sometimes the record turns doesn't load quick enough
+	if (MapID ~= lastMapID) then  session_data_counter = session_data_counter + 1 end
+	if (session_data_counter > 10) then
+		if lastMapID == 0 then -- we loaded a save file (or I guess just finished chapter 0)
+			local record_turns_data = read_u32_le(record_turns_initial_addr)
+			if (record_turns_data ~= 0) then -- make sure chapter 1 has been finished before loading Session data
+				-- if chapter 1 has not been finished, then we will end up saving session data before we load it, making a new file
 				loadSessionData()
 				print("Session data loaded")
 			end
+			lastMapID = MapID
 		else
 			saveSessionData()
 			print("Session data saved to session_data.csv")
+			lastMapID = MapID
 		end
-		lastChapterStartClock = ChapterStartClock
+		session_data_counter = 0
 	end
 	
 end
