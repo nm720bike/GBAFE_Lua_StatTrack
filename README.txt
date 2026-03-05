@@ -1,4 +1,4 @@
-README for GBA FE Lua StatTrack script.
+README for GBA FE Lua StatTrack script - BizHawk Version.
 
 Credit to Dondon151 for the RNG scrambler functionality of this script. And shoutout to Geene whose scripts I borrowed some insiration from and whose readme I copied from
 

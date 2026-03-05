@@ -422,46 +422,51 @@ local name_horiz_offset = 37
 local name_vertical_offset = 0x8803D30
 local memory_diff_value = 52
 local class_promo_offset = 0x29
-local initial_map_id = 0
 local chap_start_addr = 0x0202BCF4
 local map_id_addr = 0x0202BCFE
+local record_turns_initial_addr = 0x0203ECf4
 if currentGame == 'Sealed Sword J' then
 	stat_mem_offset = -2
 	name_horiz_offset = 69
 	name_vertical_offset = 0x8607688
 	memory_diff_value = 48
 	class_promo_offset = 0x25
-	initial_map_id = 1
 	chap_start_addr = 0x0202AA4C
 	map_id_addr = 0x0202AA56
+	record_turns_initial_addr = 0x0203D994
 elseif (currentGame == 'Blazing Sword U') then
 	name_vertical_offset = 0x8BDCE18
 	name_horiz_offset = 101
-	initial_map_id = 13 -- This is Hector Normal mode's start. It's different for other routes
 	chap_start_addr = 0x0202BBFC
 	map_id_addr = 0x0202BC06
+	record_turns_initial_addr = 0x0203EC00
 end
 
-local lastChapterStartClock = 0
+local lastMapID = 0
+local session_data_counter = 0
 function updateLUT_stage1(char_number) -- ~3us on average
 	addr = baseAddress + (char_number*0x48)
 	local Rom_unit = memory.read_u32_le(addr, "System Bus")
 	Cdata['lookupKey'] = Rom_unit
 	unit_arr = UnitsLut[Cdata['lookupKey']]
-	local ChapterStartClock = memory.read_u32_le(chap_start_addr, "System Bus")
-	if (ChapterStartClock ~= lastChapterStartClock) then
-		if lastChapterStartClock == 0 then -- We loaded a save from the menu or started a new game
-			local MapID = memory.readbyte(map_id_addr)
-			if MapID ~= initial_map_id then -- we loaded into any map that's not the prologue/chap1, so load session data
+	local MapID = memory.readbyte(map_id_addr)
+	-- I did this 10 frame wait thing to do session data stuff because sometimes the record turns doesn't load quick enough
+	if (MapID ~= lastMapID) then  session_data_counter = session_data_counter + 1 end
+	if (session_data_counter > 10) then
+		if lastMapID == 0 then -- we loaded a save file (or I guess just finished chapter 0)
+			local record_turns_data = memory.read_u32_le(record_turns_initial_addr, "System Bus")
+			if (record_turns_data ~= 0) then -- make sure chapter 1 has been finished before loading Session data
+				-- if chapter 1 has not been finished, then we will end up saving session data before we load it, making a new file
 				loadSessionData()
 				print("Session data loaded")
-				print(MapID)
 			end
+			lastMapID = MapID
 		else
 			saveSessionData()
 			print("Session data saved to session_data.csv")
+			lastMapID = MapID
 		end
-		lastChapterStartClock = ChapterStartClock
+		session_data_counter = 0
 	end
 	
 end
@@ -605,8 +610,6 @@ function updateLUT_stage3() -- probably 20+ us at this point
 		if unit_arr[34] == 1 then -- if promoted 
 			if currentGame == 'Sealed Sword J' then
 				promo_gains = {unit_arr[36], unit_arr[37], unit_arr[38], unit_arr[39], unit_arr[40], unit_arr[41]}
-				print(unit_arr[1])
-				print(promo_gains)
 			else
 				promo_gains = {class_info_arr[16], class_info_arr[17], class_info_arr[18], class_info_arr[19], class_info_arr[20], class_info_arr[21]}
 			end
@@ -624,7 +627,7 @@ function updateLUT_stage3() -- probably 20+ us at this point
 			elseif unit_arr[34] == 1 then -- we were promoted, so do lvl - 1 + pp_lvl - b_lvl
 				Cdata['lvls_gained'] = unit_arr[10] - 1 + unit_arr[25] - unit_arr[2]
 			end
-		else -- unpromoted unit
+		else -- unpromoted/prepromoted unit
 			avg_hp =  math.min(class_info_arr[1], unit_arr[03] + math.floor((unit_arr[10] - unit_arr[2]) * unit_arr[18] + 0.5))
 			avg_str = math.min(class_info_arr[2], unit_arr[04] + math.floor((unit_arr[10] - unit_arr[2]) * unit_arr[19] + 0.5))
 			avg_skl = math.min(class_info_arr[3], unit_arr[05] + math.floor((unit_arr[10] - unit_arr[2]) * unit_arr[20] + 0.5))
@@ -632,7 +635,7 @@ function updateLUT_stage3() -- probably 20+ us at this point
 			avg_def = math.min(class_info_arr[5], unit_arr[07] + math.floor((unit_arr[10] - unit_arr[2]) * unit_arr[22] + 0.5))
 			avg_res = math.min(class_info_arr[6], unit_arr[08] + math.floor((unit_arr[10] - unit_arr[2]) * unit_arr[23] + 0.5))
 			avg_lck = math.min(30, 				  unit_arr[09] + math.floor((unit_arr[10] - unit_arr[2]) * unit_arr[24] + 0.5))
-			Cdata['lvls_gained'] = unit_arr[25] - unit_arr[2]
+			Cdata['lvls_gained'] = unit_arr[10] - unit_arr[2]
 		end
 	end
 	-- We just leveled up
