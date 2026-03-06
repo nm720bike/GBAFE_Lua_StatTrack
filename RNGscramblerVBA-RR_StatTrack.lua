@@ -411,7 +411,6 @@ function checkForUserInput()
 		else
 			re_draw = 1
 		end
-		display_frame_start = emu.framecount()
 	end
 	for key, value in pairs(heldDown) do
 		heldDown[key] = true
@@ -550,6 +549,8 @@ function updateLUT_stage2(char_number) -- ~7-15us on average
 	unit_arr[17] = lck
 end
 
+
+local lvl_gained = 0
 function updateLUT_stage3() -- probably 20+ us at this point
 	local promo_hp_gain = 0
 	local promo_str_gain = 0
@@ -583,7 +584,6 @@ function updateLUT_stage3() -- probably 20+ us at this point
 	local avg_def = 0
 	local avg_res = 0
 	local avg_lck = 0
-	local lvl_gained = 0
 	-- handle the trainees first
 	-- add trainee promo bonuses here
 	if (unit_arr[35] > 0) then
@@ -686,8 +686,8 @@ function updateLUT_stage4() -- ~1.4us on average
 			local inserted = false
 			while i > 0 do
 				if CurrentUnits[i] == Cdata['lookupKey'] and not(inserted) then
-					if (level_gained == 1) then
-						displayed_unit_index = i
+					if (lvl_gained == 1) then
+						displayed_unit_index = i-1
 						lvl_gained = 0
 					end
 					return
@@ -701,8 +701,7 @@ function updateLUT_stage4() -- ~1.4us on average
 					table.insert(CurrentUnits, i+1, Cdata['lookupKey'])
 					inserted = true
 					re_draw = 1
-					display_frame_start = emu.framecount()
-					if (level_gained == 1) then
+					if (lvl_gained == 1) then
 						displayed_unit_index = i
 						lvl_gained = 0
 					end
@@ -713,16 +712,14 @@ function updateLUT_stage4() -- ~1.4us on average
 			if #CurrentUnits == 0 then
 				table.insert(CurrentUnits, 1, Cdata['lookupKey'])
 				re_draw = 1
-				display_frame_start = emu.framecount()
-				if (level_gained == 1) then
+				if (lvl_gained == 1) then
 					displayed_unit_index = 0
 					lvl_gained = 0
 				end
 			elseif (not(inserted) and Cdata['lvls_gained'] > 0 and not(contains(CurrentUnits, Cdata['lookupKey']))) then
 				table.insert(CurrentUnits, 1, Cdata['lookupKey'])
 				re_draw = 1
-				display_frame_start = emu.framecount()
-				if (level_gained == 1) then
+				if (lvl_gained == 1) then
 					displayed_unit_index = 0
 					lvl_gained = 0
 				end
