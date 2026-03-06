@@ -26,6 +26,10 @@ local userInput = input.get()
 local displayRNG = false
 local current_color = 0
 local character_rotater = 0
+local display_duration = 300
+local displayed_unit_index = 0
+-- If you want to move the window, adjust this number. 1 would be all the way on the left
+local onTopOffsetX = bufferwidth - 48
 
 
 -- Read consecutive values from the ROM to find a special string (ex/ FIREEMBLEM6.AFEJ01) used to distinguish between games
@@ -387,8 +391,18 @@ function checkForUserInput()
 		re_draw = 1
 	end
 	if userInput.L and heldDown['L'] == false then
-		character_rotater = (character_rotater + 1) % (#CurrentUnits-2)
-		re_draw = 1
+		if (num_displayed_units ~= 0) then
+			character_rotater = (character_rotater + 1) % (#CurrentUnits-2)
+			re_draw = 1
+		else
+			if (isDisplayActive()) then
+				displayed_unit_index = (displayed_unit_index - 1) % (#CurrentUnits-2) + 2
+				re_draw = 1
+			else
+				re_draw = 1
+			end
+			display_frame_start = emu.framecount()
+		end
 	end
 	for key, value in pairs(heldDown) do
 		heldDown[key] = true
@@ -396,6 +410,16 @@ function checkForUserInput()
 			heldDown[key] = false
 		end
 	end
+end
+
+function isDisplayActive()
+	if (emu.framecount() < display_duration) then
+		display_frame_start = 0
+		gui.clearGraphics()
+		return false
+	end
+	local elapsed = emu.framecount() - display_frame_start
+	return elapsed < display_duration
 end
 
 
@@ -518,6 +542,7 @@ function updateLUT_stage2(char_number) -- ~7-15us on average
 	unit_arr[17] = lck
 end
 
+local lvl_gained = 0
 function updateLUT_stage3() -- probably 20+ us at this point
 	local promo_hp_gain = 0
 	local promo_str_gain = 0
@@ -641,6 +666,8 @@ function updateLUT_stage3() -- probably 20+ us at this point
 	-- We just leveled up
 	if (unit_arr[33] < Cdata['lvls_gained']) then
 		re_draw = 1
+		lvl_gained = 1
+		print("Unit "..unit_arr[1].." leveled up! New level: "..Cdata['lvls_gained'].." (was "..unit_arr[33]..")")
 	end
 	unit_arr[33] = Cdata['lvls_gained']
 	unit_arr[26] = Cdata['maxHP']-avg_hp
@@ -659,6 +686,12 @@ function updateLUT_stage4() -- ~1.4us on average
 			local inserted = false
 			while i > 0 do
 				if CurrentUnits[i] == Cdata['lookupKey'] and not(inserted) then
+					if (lvl_gained == 1) then
+						displayed_unit_index = i-1
+						print("displayed_unit_index set to "..displayed_unit_index .. "currentUnits = ")
+						print(CurrentUnits)
+						lvl_gained = 0
+					end
 					return
 				end
 				if (inserted) then
@@ -667,19 +700,42 @@ function updateLUT_stage4() -- ~1.4us on average
 						re_draw = 1
 					end
 				elseif (Cdata['lvls_gained'] > UnitsLut[CurrentUnits[i]][33]) then
+					print("checkpoint0")
+					print(lvl_gained)
 					table.insert(CurrentUnits, i+1, Cdata['lookupKey'])
 					inserted = true
 					re_draw = 1
+					if (lvl_gained == 1) then
+						displayed_unit_index = i
+						lvl_gained = 0
+						print("displayed_unit_index set to "..displayed_unit_index .. "currentUnits = ")
+						print(CurrentUnits)
+					end
 					i = i + 1
 				end
 				i = i - 1;
 			end
+			print("checkpoint")
 			if #CurrentUnits == 0 then
+				print("checkpoint1")
 				table.insert(CurrentUnits, 1, Cdata['lookupKey'])
 				re_draw = 1
+				if (lvl_gained == 1) then
+					displayed_unit_index = 0
+					lvl_gained = 0
+					print("displayed_unit_index set to "..displayed_unit_index .. "currentUnits = ")
+					print(CurrentUnits)
+				end
 			elseif (not(inserted) and Cdata['lvls_gained'] > 0 and not(contains(CurrentUnits, Cdata['lookupKey']))) then
 				table.insert(CurrentUnits, 1, Cdata['lookupKey'])
+				print("checkpoint2")
 				re_draw = 1
+				if (lvl_gained == 1) then
+					displayed_unit_index = 0
+					lvl_gained = 0
+					print("displayed_unit_index set to "..displayed_unit_index .. "currentUnits = ")
+					print(CurrentUnits)
+				end
 			end
 		end
 	end
@@ -818,6 +874,56 @@ function draw()
 	end
 end
 
+function drawOnTop(unitIndex)
+	-- no valid unit? abort
+	local opacity = math.min(((display_duration - (emu.framecount() - display_frame_start))/display_duration) * 2, .80)
+	local foreground_color_alpha = "#" .. string.format("%X", math.floor(0xFF * opacity)) .. string.sub(foreground_color, 2)
+	local background_color_alpha = "#" .. string.format("%X", math.floor(0xFF * opacity)) .. string.sub(background_color, 2)
+	offset = onTopOffsetX
+	width = 48
+	drawBox(0+offset-1, 0, width+offset, 121, foreground_color_alpha, background_color_alpha, "emucore")
+	drawLine(15+offset, 0, 15+offset, 121, foreground_color_alpha, "emucore") -- vertical line at -98
+	
+	drawLine(0+offset, 42, width+offset, 42, foreground_color_alpha, "emucore") -- horizontal line at 42
+	drawLine(0+offset, 52, width+offset, 52, foreground_color_alpha, "emucore") -- horizontal line at 52
+	drawLine(0+offset, 62, width+offset, 62, foreground_color_alpha, "emucore") -- horizontal line at 62
+	drawLine(0+offset, 72, width+offset, 72, foreground_color_alpha, "emucore") -- horizontal line at 72
+	drawLine(0+offset, 82, width+offset, 82, foreground_color_alpha, "emucore") -- horizontal line at 82
+	drawLine(0+offset, 92, width+offset, 92, foreground_color_alpha, "emucore") -- horizontal line at 92
+	drawLine(0+offset, 102, width+offset, 102, foreground_color_alpha, "emucore") -- horizontal line at 102
+	drawLine(0+offset, 112, width+offset, 112, foreground_color_alpha, "emucore") -- horizontal line at 112
+
+	gui.drawImageRegion("./images/ref_img.png",0,0,13,6,1+offset,45) -- lvl
+	gui.drawImageRegion("./images/ref_img.png",0,6,13,6,1+offset,55) -- hp
+	gui.drawImageRegion("./images/ref_img.png",0,12,13,6,1+offset,65) -- str
+	gui.drawImageRegion("./images/ref_img.png",0,18,13,6,1+offset,75) -- skl
+	gui.drawImageRegion("./images/ref_img.png",0,24,13,6,1+offset,85) -- spd
+	gui.drawImageRegion("./images/ref_img.png",0,30,13,6,1+offset,95) -- lck
+	gui.drawImageRegion("./images/ref_img.png",0,36,13,6,1+offset,105) -- def
+	gui.drawImageRegion("./images/ref_img.png",0,42,13,6,1+offset,115) -- res
+	unitInfo = UnitsLut[CurrentUnits[displayed_unit_index+1]]
+	if (unitInfo[1] ~= '') then
+		gui.drawImage("./images/"..unitInfo[1]..".png", width-32+offset, 1)
+		local name_index = math.floor((CurrentUnits[displayed_unit_index+1] - name_vertical_offset)/memory_diff_value)
+		gui.drawImageRegion("./images/ref_img.png",name_horiz_offset,0 + name_index*6,32,6,width-32+offset,35) -- Name
+		gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[10]*6,9,6,width-31+offset + 10,45) -- lvl
+		gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[11]*6,9,6,width-31+offset + 4,55) -- hp
+		gui.drawImageRegion("./images/ref_img.png",22,125 + (unitInfo[26])*6,15,7,width-31+offset + 13,54) -- hp avg
+		gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[12]*6,9,6,width-31+offset + 4,65) -- str
+		gui.drawImageRegion("./images/ref_img.png",22,125 + (unitInfo[27])*6,15,7,width-31+offset + 13,64) -- str avg
+		gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[13]*6,9,6,width-31+offset + 4,75) -- skl
+		gui.drawImageRegion("./images/ref_img.png",22,125 + (unitInfo[28])*6,15,7,width-31+offset + 13,74) -- skl avg
+		gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[14]*6,9,6,width-31+offset + 4,85) -- spd
+		gui.drawImageRegion("./images/ref_img.png",22,125 + (unitInfo[29])*6,15,7,width-31+offset + 13,84) -- spd avg
+		gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[17]*6,9,6,width-31+offset + 4,95) -- lck
+		gui.drawImageRegion("./images/ref_img.png",22,125 + (unitInfo[32])*6,15,7,width-31+offset + 13,94) -- lck avg
+		gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[15]*6,9,6,width-31+offset + 4,105) -- def
+		gui.drawImageRegion("./images/ref_img.png",22,125 + (unitInfo[30])*6,15,7,width-31+offset + 13,104) -- def avg
+		gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[16]*6,9,6,width-31+offset + 4,115) -- res
+		gui.drawImageRegion("./images/ref_img.png",22,125 + (unitInfo[31])*6,15,7,width-31+offset + 13,114) -- res avg
+	end
+
+end
 
 while true do
 	-- I want to do all 4 stages of updating the LUT for each character
@@ -853,11 +959,20 @@ while true do
 			draw()
 		else
 			client.SetGameExtraPadding(0, 0, 0, 0)
+			display_frame_start = emu.framecount()
 		end
 		last_num_displayed = num_displayed_units
 		re_draw = 0
 	end
-	
+
+	if (num_displayed_units == 0) then
+		if isDisplayActive() then
+			drawOnTop()
+		else
+			gui.clearGraphics()
+		end
+	end
+
 	userInput = input.get()
 	checkForUserInput()
 	if memory.readbyte(phaseMap[currentGame]) == 0 then
