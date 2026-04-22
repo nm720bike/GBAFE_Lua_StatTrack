@@ -53,7 +53,7 @@ local last_level_states = {}  -- Track previous level for each unit
 local function colorWithOpacity(hex_color, opacity)
     -- Convert #RRGGBB to 0x7FBBGGRR (50% opacity)
     if type(hex_color) == 'string' and hex_color:sub(1,1) == '#' then
-		opacity = math.floor(opacity * 127)  -- Convert opacity to 0-127 range
+		opacity = math.floor(opacity * 256)  -- Convert opacity to 0-127 range
         local r = tonumber(hex_color:sub(2,3), 16)
         local g = tonumber(hex_color:sub(4,5), 16)
         local b = tonumber(hex_color:sub(6,7), 16)
@@ -68,6 +68,7 @@ local userInput = input.get()
 local displayRNG = false
 local current_color = 0
 local character_rotater = 0
+local hide_overlay = false
 
 
 -- Read consecutive values from the ROM to find a special string (ex/ FIREEMBLEM6.AFEJ01) used to distinguish between games
@@ -326,7 +327,8 @@ local CurrentUnits = {}
 heldDown = {
 	['R'] = false, 
 	['slash'] = false,
-	['L'] = false
+	['L'] = false,
+	['H'] = false
 }
 
 function superRNToRN(srn)
@@ -410,6 +412,15 @@ function checkForUserInput()
 			re_draw = 1
 		else
 			re_draw = 1
+		end
+	end
+	if (userInput.H and heldDown['H'] == false) then
+		if (hide_overlay == false) then
+			hide_overlay = true
+			print("Hiding overlay")
+		else
+			hide_overlay = false
+			print("Showing overlay")
 		end
 	end
 	for key, value in pairs(heldDown) do
@@ -742,7 +753,15 @@ end
 
 function drawUnit(unitIndex)
 	-- no valid unit? abort
-	local opacity = math.min(((display_duration - (emu.framecount() - display_frame_start))/display_duration) * 2, .90)
+	local opacity = 0
+	local current_time = emu.framecount()
+	if (current_time - display_frame_start < 60) then
+		opacity = ((current_time - display_frame_start)/75)
+	elseif (current_time - display_frame_start > display_duration-60) then
+		opacity = (display_duration - (current_time - display_frame_start))/75
+	else
+		opacity = .8
+	end
 	if CurrentUnits[unitIndex+1] == nil then return end
 	unitAddr = CurrentUnits[unitIndex+1]
 	local unitInfo = UnitsLut[unitAddr]
@@ -808,56 +827,73 @@ end
 
 
 while true do
-	-- I want to do all 4 stages of updating the LUT for each character
-	--      0 0 0 0 0 0             0 0
-	-- 6 bits for characters  2 bits for stages
-	-- 6 bits lets us do 64 characters (just barely enough for FE6)
-	-- emu.framecount < 2^8 (256)
-	-- max_char = 1111 11 00 = 0xFC
-	-- 			  1111 11 00 = 0xFC (mask for character number)
-	-- lower bits are what state of calculations we're on
-	local stage = (bit.band(emu.framecount(), 0x3)) + 1
-	-- char number effects the offset in memory we want to read for the character
-	local char_number = bit.rshift(bit.band(emu.framecount(), 0xFC), 2)
-	if (stage == 1) then
-		-- this will populate Cdata['lookupKey']
-		updateLUT_stage1(char_number)
-	end
-	if UnitsLut[Cdata['lookupKey']] ~= nil then
-		--stage 2 is the longest stage but still takes less than ~15us which is very quick
-		if (stage == 2) then
-			updateLUT_stage2(char_number)
-		end
-		if (stage == 3) then
-			updateLUT_stage3()
-		end
-		if (stage == 4) then
-			updateLUT_stage4()
-		end
-	end
+	-- -- I want to do all 4 stages of updating the LUT for each character
+	-- --      0 0 0 0 0 0             0 0
+	-- -- 6 bits for characters  2 bits for stages
+	-- -- 6 bits lets us do 64 characters (just barely enough for FE6)
+	-- -- emu.framecount < 2^8 (256)
+	-- -- max_char = 1111 11 00 = 0xFC
+	-- -- 			  1111 11 00 = 0xFC (mask for character number)
+	-- -- lower bits are what state of calculations we're on
+	-- local stage = (bit.band(emu.framecount(), 0x3)) + 1
+	-- -- char number effects the offset in memory we want to read for the character
+	-- local char_number = bit.rshift(bit.band(emu.framecount(), 0xFC), 2)
+	-- if (stage == 1) then
+	-- 	-- this will populate Cdata['lookupKey']
+	-- 	updateLUT_stage1(char_number)
+	-- end
+	-- if UnitsLut[Cdata['lookupKey']] ~= nil then
+	-- 	--stage 2 is the longest stage but still takes less than ~15us which is very quick
+	-- 	if (stage == 2) then
+	-- 		updateLUT_stage2(char_number)
+	-- 	end
+	-- 	if (stage == 3) then
+	-- 		updateLUT_stage3()
+	-- 	end
+	-- 	if (stage == 4) then
+	-- 		updateLUT_stage4()
+	-- 	end
+	-- end
 
-	if (re_draw == 1) then
-		display_frame_start = emu.framecount()
-		draw()
-		last_num_displayed = num_displayed_units
-		re_draw = 0
+	-- The above commented code should replace the below code if you are experiencing lag
+	------------------------------------------------
+	local char_number = bit.band(emu.framecount(), 0x3F)
+	-- stage 1 takes .003ms
+	updateLUT_stage1(char_number)
+	if UnitsLut[Cdata['lookupKey']] ~= nil then
+		-- stage 2 takes .006ms
+		updateLUT_stage2(char_number)
+		-- stage 3 takes .008ms
+		updateLUT_stage3()
+		-- stage 4 takes .0001ms
+		updateLUT_stage4()
 	end
-	
-	-- Always draw if display window is active
-	if isDisplayActive() then
-		draw()
+	------------------------------------------------
+
+	if hide_overlay == false then
+		if (re_draw == 1) then
+			display_frame_start = emu.framecount()
+			draw()
+			last_num_displayed = num_displayed_units
+			re_draw = 0
+		end
+		
+		-- Always draw if display window is active
+		if isDisplayActive() then
+			draw()
+		end
 	end
 	
 	userInput = input.get()
 	checkForUserInput()
 	if memory.readbyte(phaseMap[currentGame]) == 0 then
 		advanceRNG()
-		gui.text(0, 0, "ACTIVE", 0x00FF00FF)
+		gui.text(1, 1, "ACTIVE", 0x00FF00FF)
 		if displayRNG then
 			printRNG(numDisplayedRNs)
 		end
 	else
-		gui.text(2, 2, "PAUSED", "red")
+		gui.text(1, 1, "PAUSED", "red")
 	end
 	if displayRNG then
 		printRNG(numDisplayedRNs)

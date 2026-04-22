@@ -28,7 +28,8 @@ Default Hotkeys:
 	
 	StatTrack:
 	'slash' - changes color
-	'L' - Display current unit. If you press it again when a unit is displayed, it cycles
+	'L' - Display current unit. If you press it again when a unit is displayed, it cycles to the next unit
+	'H' - Hides or shows stats overlay. Whenever the script is run it will default to showing the overlay
 
 
 Color change Instructions:
