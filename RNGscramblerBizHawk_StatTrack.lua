@@ -15,6 +15,7 @@ local last_num_displayed = 0
 local baseFontSize = 3
 local width = 110
 local re_draw = 1
+local hide_overlay = false
 
 local drawString = gui.drawString
 local drawLine = gui.drawLine
@@ -26,7 +27,7 @@ local userInput = input.get()
 local displayRNG = false
 local current_color = 0
 local character_rotater = 0
-local display_duration = 300
+local display_duration = 360
 local displayed_unit_index = 0
 -- If you want to move the window, adjust this number. 1 would be all the way on the left
 local onTopOffsetX = bufferwidth - 48
@@ -303,7 +304,8 @@ heldDown = {
 	['Period'] = false,
 	['Comma'] = false,
 	['Slash'] = false,
-	['L'] = false
+	['L'] = false,
+	['H'] = false
 }
 
 function superRNToRN(srn)
@@ -390,14 +392,25 @@ function checkForUserInput()
 		foreground_color = color_arr[current_color][2]
 		re_draw = 1
 	end
+	if (userInput.H and heldDown['H'] == false) then
+		if (hide_overlay == false) then
+			hide_overlay = true
+			print("Hiding overlay")
+		else
+			hide_overlay = false
+			print("Showing overlay")
+		end
+	end
 	if userInput.L and heldDown['L'] == false then
 		if (num_displayed_units ~= 0) then
 			character_rotater = (character_rotater + 1) % (#CurrentUnits-2)
 			re_draw = 1
 		else
 			if (isDisplayActive()) then
-				displayed_unit_index = (displayed_unit_index - 1) % (#CurrentUnits-2) + 2
-				re_draw = 1
+				if (#CurrentUnits > 2) then
+					displayed_unit_index = (displayed_unit_index - 1) % (#CurrentUnits-2) + 2
+					re_draw = 1
+				end
 			else
 				re_draw = 1
 			end
@@ -667,7 +680,7 @@ function updateLUT_stage3() -- probably 20+ us at this point
 	if (unit_arr[33] < Cdata['lvls_gained']) then
 		re_draw = 1
 		lvl_gained = 1
-		print("Unit "..unit_arr[1].." leveled up! New level: "..Cdata['lvls_gained'].." (was "..unit_arr[33]..")")
+		-- print("Unit "..unit_arr[1].." leveled up! New level: "..Cdata['lvls_gained'].." (was "..unit_arr[33]..")")
 	end
 	unit_arr[33] = Cdata['lvls_gained']
 	unit_arr[26] = Cdata['maxHP']-avg_hp
@@ -688,8 +701,8 @@ function updateLUT_stage4() -- ~1.4us on average
 				if CurrentUnits[i] == Cdata['lookupKey'] and not(inserted) then
 					if (lvl_gained == 1) then
 						displayed_unit_index = i-1
-						print("displayed_unit_index set to "..displayed_unit_index .. "currentUnits = ")
-						print(CurrentUnits)
+						-- print("displayed_unit_index set to "..displayed_unit_index .. "currentUnits = ")
+						-- print(CurrentUnits)
 						lvl_gained = 0
 					end
 					return
@@ -700,41 +713,41 @@ function updateLUT_stage4() -- ~1.4us on average
 						re_draw = 1
 					end
 				elseif (Cdata['lvls_gained'] > UnitsLut[CurrentUnits[i]][33]) then
-					print("checkpoint0")
-					print(lvl_gained)
+					-- print("checkpoint0")
+					-- print(lvl_gained)
 					table.insert(CurrentUnits, i+1, Cdata['lookupKey'])
 					inserted = true
 					re_draw = 1
 					if (lvl_gained == 1) then
 						displayed_unit_index = i
 						lvl_gained = 0
-						print("displayed_unit_index set to "..displayed_unit_index .. "currentUnits = ")
-						print(CurrentUnits)
+						-- print("displayed_unit_index set to "..displayed_unit_index .. "currentUnits = ")
+						-- print(CurrentUnits)
 					end
 					i = i + 1
 				end
 				i = i - 1;
 			end
-			print("checkpoint")
+			-- print("checkpoint")
 			if #CurrentUnits == 0 then
-				print("checkpoint1")
+				-- print("checkpoint1")
 				table.insert(CurrentUnits, 1, Cdata['lookupKey'])
 				re_draw = 1
 				if (lvl_gained == 1) then
 					displayed_unit_index = 0
 					lvl_gained = 0
-					print("displayed_unit_index set to "..displayed_unit_index .. "currentUnits = ")
-					print(CurrentUnits)
+					-- print("displayed_unit_index set to "..displayed_unit_index .. "currentUnits = ")
+					-- print(CurrentUnits)
 				end
 			elseif (not(inserted) and Cdata['lvls_gained'] > 0 and not(contains(CurrentUnits, Cdata['lookupKey']))) then
 				table.insert(CurrentUnits, 1, Cdata['lookupKey'])
-				print("checkpoint2")
+				-- print("checkpoint2")
 				re_draw = 1
 				if (lvl_gained == 1) then
 					displayed_unit_index = 0
 					lvl_gained = 0
-					print("displayed_unit_index set to "..displayed_unit_index .. "currentUnits = ")
-					print(CurrentUnits)
+					-- print("displayed_unit_index set to "..displayed_unit_index .. "currentUnits = ")
+					-- print(CurrentUnits)
 				end
 			end
 		end
@@ -794,6 +807,7 @@ function draw()
 		CurrentUnitIndex = (#CurrentUnits - 3 + num_displayed_units+3 - character_rotater) % #CurrentUnits
 	end
 	unitInfo = UnitsLut[CurrentUnits[CurrentUnitIndex+1]]
+	if unitInfo == nil then return end
 	if (unitInfo[1] ~= '') then
 		gui.drawImage("./images/"..unitInfo[1]..".png", width-32+offset, 1)
 		local name_index = math.floor((CurrentUnits[CurrentUnitIndex+1] - name_vertical_offset)/memory_diff_value)
@@ -822,6 +836,7 @@ function draw()
 			CurrentUnitIndex = (#CurrentUnits - 2 + num_displayed_units+3 - character_rotater) % #CurrentUnits
 		end
 		unitInfo = UnitsLut[CurrentUnits[CurrentUnitIndex+1]]
+		if unitInfo == nil then return end
 		if (unitInfo[1] ~= '') then
 			gui.drawImage("./images/"..unitInfo[1]..".png", width-65+offset, 1)
 			local name_index = math.floor((CurrentUnits[CurrentUnitIndex+1] - name_vertical_offset)/memory_diff_value)
@@ -851,6 +866,7 @@ function draw()
 			CurrentUnitIndex = (#CurrentUnits - 1 + num_displayed_units+3 - character_rotater) % #CurrentUnits
 		end
 		unitInfo = UnitsLut[CurrentUnits[CurrentUnitIndex+1]]
+		if unitInfo == nil then return end
 		if (unitInfo[1] ~= '') then
 			gui.drawImage("./images/"..unitInfo[1]..".png", width-98+offset, 1)
 			local name_index = math.floor((CurrentUnits[CurrentUnitIndex+1] - name_vertical_offset)/memory_diff_value)
@@ -874,9 +890,21 @@ function draw()
 	end
 end
 
-function drawOnTop(unitIndex)
-	-- no valid unit? abort
-	local opacity = math.min(((display_duration - (emu.framecount() - display_frame_start))/display_duration) * 2, .80)
+function drawOnTop()
+	if (CurrentUnits[displayed_unit_index+1] == nil or CurrentUnits[displayed_unit_index+1] == 0xBADCAFE) then
+		return
+	end
+	local opacity = 0
+	local current_time = emu.framecount()
+	if (current_time - display_frame_start < 60) then
+		opacity = ((current_time - display_frame_start)/75)
+	elseif (current_time - display_frame_start > display_duration-60) then
+		opacity = (display_duration - (current_time - display_frame_start))/75
+	else
+		opacity = .8
+	end
+
+	-- local opacity = math.min(((display_duration - (emu.framecount() - display_frame_start))/display_duration) * 2, .80)
 	local foreground_color_alpha = "#" .. string.format("%X", math.floor(0xFF * opacity)) .. string.sub(foreground_color, 2)
 	local background_color_alpha = "#" .. string.format("%X", math.floor(0xFF * opacity)) .. string.sub(background_color, 2)
 	offset = onTopOffsetX
@@ -893,6 +921,12 @@ function drawOnTop(unitIndex)
 	drawLine(0+offset, 102, width+offset, 102, foreground_color_alpha, "emucore") -- horizontal line at 102
 	drawLine(0+offset, 112, width+offset, 112, foreground_color_alpha, "emucore") -- horizontal line at 112
 
+	if (current_time - display_frame_start < 30) then
+		return
+	elseif (current_time - display_frame_start > display_duration-30) then
+		return
+	end
+
 	gui.drawImageRegion("./images/ref_img.png",0,0,13,6,1+offset,45) -- lvl
 	gui.drawImageRegion("./images/ref_img.png",0,6,13,6,1+offset,55) -- hp
 	gui.drawImageRegion("./images/ref_img.png",0,12,13,6,1+offset,65) -- str
@@ -902,6 +936,7 @@ function drawOnTop(unitIndex)
 	gui.drawImageRegion("./images/ref_img.png",0,36,13,6,1+offset,105) -- def
 	gui.drawImageRegion("./images/ref_img.png",0,42,13,6,1+offset,115) -- res
 	unitInfo = UnitsLut[CurrentUnits[displayed_unit_index+1]]
+	if unitInfo == nil then return end
 	if (unitInfo[1] ~= '') then
 		gui.drawImage("./images/"..unitInfo[1]..".png", width-32+offset, 1)
 		local name_index = math.floor((CurrentUnits[displayed_unit_index+1] - name_vertical_offset)/memory_diff_value)
@@ -926,33 +961,48 @@ function drawOnTop(unitIndex)
 end
 
 while true do
-	-- I want to do all 4 stages of updating the LUT for each character
-	--      0 0 0 0 0 0             0 0
-	-- 6 bits for characters  2 bits for stages
-	-- 6 bits lets us do 64 characters (just barely enough for FE6)
-	-- emu.framecount < 2^8 (256)
-	-- max_char = 1111 11 00 = 0xFC
-	-- 			  1111 11 00 = 0xFC (mask for character number)
-	-- lower bits are what state of calculations we're on
-	local stage = (emu.framecount() & 0x3) + 1
-	-- char number effects the offset in memory we want to read for the character
-	local char_number = (emu.framecount() & 0xFC) >> 2
-	if (stage == 1) then
-		-- this will populate Cdata['lookupKey']
-		updateLUT_stage1(char_number)
-	end
+	-- -- I want to do all 4 stages of updating the LUT for each character
+	-- --      0 0 0 0 0 0             0 0
+	-- -- 6 bits for characters  2 bits for stages
+	-- -- 6 bits lets us do 64 characters (just barely enough for FE6)
+	-- -- emu.framecount < 2^8 (256)
+	-- -- max_char = 1111 11 00 = 0xFC
+	-- -- 			  1111 11 00 = 0xFC (mask for character number)
+	-- -- lower bits are what state of calculations we're on
+	-- local stage = (emu.framecount() & 0x3) + 1
+	-- -- char number effects the offset in memory we want to read for the character
+	-- local char_number = (emu.framecount() & 0xFC) >> 2
+	-- if (stage == 1) then
+	-- 	-- this will populate Cdata['lookupKey']
+	-- 	updateLUT_stage1(char_number)
+	-- end
+	-- if UnitsLut[Cdata['lookupKey']] ~= nil then
+	-- 	--stage 2 is the longest stage but still takes less than ~15us which is very quick
+	-- 	if (stage == 2) then
+	-- 		updateLUT_stage2(char_number)
+	-- 	end
+	-- 	if (stage == 3) then
+	-- 		updateLUT_stage3()
+	-- 	end
+	-- 	if (stage == 4) then
+	-- 		updateLUT_stage4()
+	-- 	end
+	-- end
+
+	-- The above commented code should replace the below code if you are experiencing lag
+	------------------------------------------------
+	local char_number = (emu.framecount() & 0x3F)
+	-- stage 1 takes .003ms
+	updateLUT_stage1(char_number)
 	if UnitsLut[Cdata['lookupKey']] ~= nil then
-		--stage 2 is the longest stage but still takes less than ~15us which is very quick
-		if (stage == 2) then
-			updateLUT_stage2(char_number)
-		end
-		if (stage == 3) then
-			updateLUT_stage3()
-		end
-		if (stage == 4) then
-			updateLUT_stage4()
-		end
+		-- stage 2 takes .006ms
+		updateLUT_stage2(char_number)
+		-- stage 3 takes .008ms
+		updateLUT_stage3()
+		-- stage 4 takes .0001ms
+		updateLUT_stage4()
 	end
+	------------------------------------------------
 
 	if (re_draw == 1) then
 		if (num_displayed_units ~= 0) then
@@ -966,8 +1016,12 @@ while true do
 	end
 
 	if (num_displayed_units == 0) then
-		if isDisplayActive() then
-			drawOnTop()
+		if hide_overlay == false then
+			if isDisplayActive() then
+				drawOnTop()
+			else
+				gui.clearGraphics()
+			end
 		else
 			gui.clearGraphics()
 		end

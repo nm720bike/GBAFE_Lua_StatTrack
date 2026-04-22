@@ -29,6 +29,7 @@ Default Hotkeys:
 	'Comma' - moves stat-tracked units left
 	'Slash' - changes color
 	'L' - Cycles order of displayed units
+	'H' - Hides or shows stats overlay for on top of screen (0 units to left or right). Whenever the script is run or game reset it will default to showing the overlay
 
 
 Color change Instructions:
