@@ -437,23 +437,54 @@ function checkForUserInput()
 			if (mouse_input["Y"] < bufferheight and mouse_input["Y"] > bufferheight-15) then
 				if (mouse_input["X"] > -width + 16+18) then 
 					if (mouse_input["X"] < -64) then
-						openStatScreen(DisplayedUnits[3])
+						if (DisplayedUnits[3] ~= 0xbadcafe) then
+							openStatScreen(DisplayedUnits[3])
+						end
 					elseif (mouse_input["X"] < -31 and mouse_input["X"] > -31-15) then
-						openStatScreen(DisplayedUnits[2])
+						if (DisplayedUnits[2] ~= 0xbadcafe) then
+							openStatScreen(DisplayedUnits[2])
+						end
 					elseif (mouse_input["X"] < 0  and mouse_input["X"] > -15) then
-						openStatScreen(DisplayedUnits[1])
+						if (DisplayedUnits[1] ~= 0xbadcafe) then
+							openStatScreen(DisplayedUnits[1])
+						end
 					end
 				end
 			end
 		else
 			if (mouse_input["Y"] < bufferheight and mouse_input["Y"] > bufferheight-15) then
 				if (mouse_input["X"] < width + 16+18+bufferwidth) then 
-					if (mouse_input["X"] > 64+32+bufferwidth) then
-						openStatScreen(DisplayedUnits[1])
-					elseif (mouse_input["X"] > 31+32+bufferwidth and mouse_input["X"] < 31+32+15+bufferwidth) then
-						openStatScreen(DisplayedUnits[2])
-					elseif (mouse_input["X"] > 0+32+bufferwidth  and mouse_input["X"] < 15+32+bufferwidth) then
-						openStatScreen(DisplayedUnits[3])
+					-- There's probably some fancy math I could do here, but I just did an if-else block for each width on the right side bc it was weird
+					if (num_displayed_units == -3) then
+						if (mouse_input["X"] > 64+32+bufferwidth) then
+							if (DisplayedUnits[1] ~= 0xbadcafe) then
+								openStatScreen(DisplayedUnits[1])
+							end
+						elseif (mouse_input["X"] > 31+32+bufferwidth and mouse_input["X"] < 31+32+15+bufferwidth) then
+							if (DisplayedUnits[2] ~= 0xbadcafe) then
+								openStatScreen(DisplayedUnits[2])
+							end
+						elseif (mouse_input["X"] > 0+32+bufferwidth  and mouse_input["X"] < 15+32+bufferwidth) then
+							if (DisplayedUnits[3] ~= 0xbadcafe) then
+								openStatScreen(DisplayedUnits[3])
+							end
+						end
+					elseif (num_displayed_units == -2) then
+						if (mouse_input["X"] > 31+32+bufferwidth and mouse_input["X"] < 31+32+15+bufferwidth) then
+							if (DisplayedUnits[2] ~= 0xbadcafe) then
+								openStatScreen(DisplayedUnits[1])
+							end
+						elseif (mouse_input["X"] > 0+32+bufferwidth  and mouse_input["X"] < 15+32+bufferwidth) then
+							if (DisplayedUnits[3] ~= 0xbadcafe) then
+								openStatScreen(DisplayedUnits[2])
+							end
+						end
+					else
+						if (mouse_input["X"] > 0+32+bufferwidth  and mouse_input["X"] < 15+32+bufferwidth) then
+							if (DisplayedUnits[3] ~= 0xbadcafe) then
+								openStatScreen(DisplayedUnits[1])
+							end
+						end
 					end
 				end
 			end
