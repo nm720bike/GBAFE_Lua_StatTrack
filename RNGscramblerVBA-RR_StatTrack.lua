@@ -796,7 +796,28 @@ function drawUnit(unitIndex)
 	drawGD(x0+width_unit-32, 35, "images/ref_img.gd", name_horiz_offset, 0 + name_index*6, 32, 6, opacity)
 	
 	-- Draw lvl
-	drawGD(x0+width_unit-21, 45, "images/ref_img.gd", 13, 0 + unitInfo[10]*6, 9, 6, opacity)
+	if (unitInfo[34] == 1) then -- if promoted
+		-- gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[25]*6,9,6,width-31+offset + 3,45) -- pp_lvl
+		drawGD(x0+width_unit-28, 45, "images/ref_img.gd", 13, 0 + unitInfo[25]*6, 9, 6, opacity) -- pp_lvl
+		-- gui.drawImageRegion("./images/ref_img.png",24,0,5,5,width-31+offset + 12,45) -- slash
+		drawGD(x0+width_unit-19, 45, "images/ref_img.gd", 24, 0, 5, 5, opacity) -- slash
+		-- gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[10]*6,9,6,width-31+offset + 17,45) -- lvl
+		drawGD(x0+width_unit-14, 45, "images/ref_img.gd", 13, 0 + unitInfo[10]*6, 9, 6, opacity) -- lvl
+	elseif (unitInfo[25] == 0) then -- if pre_premote
+		-- gui.drawImageRegion("./images/ref_img.png",28,0,9,6,width-31+offset + 3,45) -- pp_lvl (double dash)
+		drawGD(x0+width_unit-28, 45, "images/ref_img.gd", 28, 0, 9, 6, opacity) -- pp_lvl (double dash)
+		-- gui.drawImageRegion("./images/ref_img.png",24,0,5,5,width-31+offset + 12,45) -- slash
+		drawGD(x0+width_unit-19, 45, "images/ref_img.gd", 24, 0, 5, 5, opacity) -- slash
+		-- gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[10]*6,9,6,width-31+offset + 17,45) -- lvl
+		drawGD(x0+width_unit-14, 45, "images/ref_img.gd", 13, 0 + unitInfo[10]*6, 9, 6, opacity) -- lvl
+	else
+		-- gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[25]*6,9,6,width-31+offset + 3,45) -- pp_lvl
+		drawGD(x0+width_unit-28, 45, "images/ref_img.gd", 13, 0 + unitInfo[25]*6, 9, 6, opacity) -- pp_lvl
+		-- gui.drawImageRegion("./images/ref_img.png",24,0,5,5,width-31+offset + 12,45) -- slash
+		drawGD(x0+width_unit-19, 45, "images/ref_img.gd", 24, 0, 5, 5, opacity) -- slash
+		-- gui.drawImageRegion("./images/ref_img.png",28,0,9,6,width-31+offset + 17,45) -- lvl (double dash)
+		drawGD(x0+width_unit-14, 45, "images/ref_img.gd", 28, 0, 9, 6, opacity) -- lvl (double dash)
+	end
 	-- draw stat values via gdoverlay (numbers are in second column of ref_img)
 	for _, data in ipairs({
 		{unitInfo[11],55},{unitInfo[12],65},{unitInfo[13],75},
