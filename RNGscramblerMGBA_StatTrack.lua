@@ -813,11 +813,17 @@ function draw()
 		statsBuffer:print("│ Lv:")
 		local u = unitData[i]
 		if u then
-			statsBuffer:print(string.format("%2d", u[10]))
+			if (u[34] == 1) then -- if promoted
+				statsBuffer:print(string.format(" %2d / %2d", u[25], u[10]))
+			elseif (u[25]== 0) then -- if pre_premote
+				statsBuffer:print(string.format(" -- / %2d", u[10]))
+			else
+				statsBuffer:print(string.format(" %2d / --", u[10]))
+			end
 		else
-			statsBuffer:print("  ")
+			statsBuffer:print(string.rep(" ", 8))
 		end
-		statsBuffer:print(string.rep(" ", 7))
+		statsBuffer:print(string.rep(" ", 1))
 		if i < units_to_display then statsBuffer:print(" ") end
 	end
 	statsBuffer:print(" │\n")
