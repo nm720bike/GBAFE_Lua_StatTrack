@@ -882,7 +882,7 @@ function draw()
 	if unitInfo == nil then return end
 	DisplayedUnits[1] = CurrentUnits[CurrentUnitIndex+1]
 	if (unitInfo[1] ~= '') then
-		print(unitInfo)
+		-- print(unitInfo)
 		gui.drawImage("./images/"..unitInfo[1]..".png", width-32+offset, 1)
 		local name_index = math.floor((CurrentUnits[CurrentUnitIndex+1] - name_vertical_offset)/memory_diff_value)
 		gui.drawImageRegion("./images/ref_img.png",name_horiz_offset,0 + name_index*6,32,6,width-32+offset,35) -- Name
@@ -926,7 +926,7 @@ function draw()
 		if unitInfo == nil then return end
 		DisplayedUnits[2] = CurrentUnits[CurrentUnitIndex+1]
 		if (unitInfo[1] ~= '') then
-			print(unitInfo)
+			-- print(unitInfo)
 			gui.drawImage("./images/"..unitInfo[1]..".png", width-65+offset, 1)
 			local name_index = math.floor((CurrentUnits[CurrentUnitIndex+1] - name_vertical_offset)/memory_diff_value)
 			gui.drawImageRegion("./images/ref_img.png",name_horiz_offset,0 + name_index*6,32,6,width-65+offset,35) -- Name
@@ -971,7 +971,7 @@ function draw()
 		if unitInfo == nil then return end
 		DisplayedUnits[3] = CurrentUnits[CurrentUnitIndex+1]
 		if (unitInfo[1] ~= '') then
-			print(unitInfo)
+			-- print(unitInfo)
 			gui.drawImage("./images/"..unitInfo[1]..".png", width-98+offset, 1)
 			local name_index = math.floor((CurrentUnits[CurrentUnitIndex+1] - name_vertical_offset)/memory_diff_value)
 			gui.drawImageRegion("./images/ref_img.png",name_horiz_offset,0 + name_index*6,32,6,width-98+offset,35) -- Name
