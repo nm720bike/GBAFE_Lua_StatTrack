@@ -882,10 +882,23 @@ function draw()
 	if unitInfo == nil then return end
 	DisplayedUnits[1] = CurrentUnits[CurrentUnitIndex+1]
 	if (unitInfo[1] ~= '') then
+		print(unitInfo)
 		gui.drawImage("./images/"..unitInfo[1]..".png", width-32+offset, 1)
 		local name_index = math.floor((CurrentUnits[CurrentUnitIndex+1] - name_vertical_offset)/memory_diff_value)
 		gui.drawImageRegion("./images/ref_img.png",name_horiz_offset,0 + name_index*6,32,6,width-32+offset,35) -- Name
-		gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[10]*6,9,6,width-31+offset + 10,45) -- lvl
+		if (unitInfo[34] == 1) then -- if promoted
+			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[25]*6,9,6,width-31+offset + 3,45) -- pp_lvl
+			gui.drawImageRegion("./images/ref_img.png",24,0,5,5,width-31+offset + 12,45) -- slash
+			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[10]*6,9,6,width-31+offset + 17,45) -- lvl
+		elseif (unitInfo[25] == 0) then -- if pre_premote
+			gui.drawImageRegion("./images/ref_img.png",28,0,9,6,width-31+offset + 3,45) -- pp_lvl (double dash)
+			gui.drawImageRegion("./images/ref_img.png",24,0,5,5,width-31+offset + 12,45) -- slash
+			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[10]*6,9,6,width-31+offset + 17,45) -- lvl
+		else
+			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[25]*6,9,6,width-31+offset + 3,45) -- pp_lvl
+			gui.drawImageRegion("./images/ref_img.png",24,0,5,5,width-31+offset + 12,45) -- slash
+			gui.drawImageRegion("./images/ref_img.png",28,0,9,6,width-31+offset + 17,45) -- lvl (double dash)
+		end
 		gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[11]*6,9,6,width-31+offset + 4,55) -- hp
 		gui.drawImageRegion("./images/ref_img.png",22,125 + (unitInfo[26])*6,15,7,width-31+offset + 13,54) -- hp avg
 		gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[12]*6,9,6,width-31+offset + 4,65) -- str
@@ -913,10 +926,23 @@ function draw()
 		if unitInfo == nil then return end
 		DisplayedUnits[2] = CurrentUnits[CurrentUnitIndex+1]
 		if (unitInfo[1] ~= '') then
+			print(unitInfo)
 			gui.drawImage("./images/"..unitInfo[1]..".png", width-65+offset, 1)
 			local name_index = math.floor((CurrentUnits[CurrentUnitIndex+1] - name_vertical_offset)/memory_diff_value)
 			gui.drawImageRegion("./images/ref_img.png",name_horiz_offset,0 + name_index*6,32,6,width-65+offset,35) -- Name
-			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[10]*6,9,6,width-64+offset + 10,45) -- lvl
+			if (unitInfo[34] == 1) then -- if promoted
+				gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[25]*6,9,6,width-64+offset + 3,45) -- pp_lvl
+				gui.drawImageRegion("./images/ref_img.png",24,0,5,5,width-64+offset + 12,45) -- slash
+				gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[10]*6,9,6,width-64+offset + 17,45) -- lvl
+			elseif (unitInfo[25] == 0) then -- if pre_premote
+				gui.drawImageRegion("./images/ref_img.png",28,0,9,6,width-64+offset + 3,45) -- pp_lvl (double dash)
+				gui.drawImageRegion("./images/ref_img.png",24,0,5,5,width-64+offset + 12,45) -- slash
+				gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[10]*6,9,6,width-64+offset + 17,45) -- lvl
+			else
+				gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[25]*6,9,6,width-64+offset + 3,45) -- pp_lvl
+				gui.drawImageRegion("./images/ref_img.png",24,0,5,5,width-64+offset + 12,45) -- slash
+				gui.drawImageRegion("./images/ref_img.png",28,0,9,6,width-64+offset + 17,45) -- lvl (double dash)
+			end
 			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[11]*6,9,6,width-64+offset + 4,55) -- hp
 			gui.drawImageRegion("./images/ref_img.png",22,125 + (unitInfo[26])*6,15,7,width-64+offset + 13,54) -- hp avg
 			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[12]*6,9,6,width-64+offset + 4,65) -- str
@@ -945,10 +971,23 @@ function draw()
 		if unitInfo == nil then return end
 		DisplayedUnits[3] = CurrentUnits[CurrentUnitIndex+1]
 		if (unitInfo[1] ~= '') then
+			print(unitInfo)
 			gui.drawImage("./images/"..unitInfo[1]..".png", width-98+offset, 1)
 			local name_index = math.floor((CurrentUnits[CurrentUnitIndex+1] - name_vertical_offset)/memory_diff_value)
 			gui.drawImageRegion("./images/ref_img.png",name_horiz_offset,0 + name_index*6,32,6,width-98+offset,35) -- Name
-			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[10]*6,9,6,width-97+offset + 10,45) -- lvl
+			if (unitInfo[34] == 1) then -- if promoted
+				gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[25]*6,9,6,width-97+offset + 3,45) -- pp_lvl
+				gui.drawImageRegion("./images/ref_img.png",24,0,5,5,width-97+offset + 12,45) -- slash
+				gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[10]*6,9,6,width-97+offset + 17,45) -- lvl
+			elseif (unitInfo[25] == 0) then -- if pre_premote
+				gui.drawImageRegion("./images/ref_img.png",28,0,9,6,width-97+offset + 3,45) -- pp_lvl (double dash)
+				gui.drawImageRegion("./images/ref_img.png",24,0,5,5,width-97+offset + 12,45) -- slash
+				gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[10]*6,9,6,width-97+offset + 17,45) -- lvl
+			else
+				gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[25]*6,9,6,width-97+offset + 3,45) -- pp_lvl
+				gui.drawImageRegion("./images/ref_img.png",24,0,5,5,width-97+offset + 12,45) -- slash
+				gui.drawImageRegion("./images/ref_img.png",28,0,9,6,width-97+offset + 17,45) -- lvl (double dash)
+			end
 			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[11]*6,9,6,width-97+offset + 4,55) -- hp
 			gui.drawImageRegion("./images/ref_img.png",22,125 + (unitInfo[26])*6,15,7,width-97+offset + 13,54) -- hp avg
 			gui.drawImageRegion("./images/ref_img.png",13,0 + unitInfo[12]*6,9,6,width-97+offset + 4,65) -- str
