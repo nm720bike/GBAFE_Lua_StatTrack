@@ -477,6 +477,8 @@ local class_promo_offset = 0x29
 local chap_start_addr = 0x0202BCF4
 local map_id_addr = 0x0202BCFE
 local record_turns_initial_addr = 0x0203ECf4
+-- This unknown value is >0 after resuming a chapter, and =0 when restarting a chapter
+local action_data_value_addr = 0x0203A958
 if currentGame == 'Sealed Sword J' then
 	stat_mem_offset = -2
 	name_horiz_offset = 69
@@ -486,16 +488,19 @@ if currentGame == 'Sealed Sword J' then
 	chap_start_addr = 0x0202AA4C
 	map_id_addr = 0x0202AA56
 	record_turns_initial_addr = 0x0203D994
+	action_data_value_addr = 0x0203956C
 elseif (currentGame == 'Blazing Sword U') then
 	name_vertical_offset = 0x8BDCE18
 	name_horiz_offset = 101
 	chap_start_addr = 0x0202BBFC
 	map_id_addr = 0x0202BC06
 	record_turns_initial_addr = 0x0203EC00
+	action_data_value_addr = 0x0203A85C
 end
 
 local lastMapID = 0
 local session_data_counter = 0
+local slated_for_UnitsLut_reset = 0
 function updateLUT_stage1(char_number) -- ~3us on average
 	addr = baseAddress + (char_number*0x48)
 	local Rom_unit = emu:read32(addr)
@@ -509,14 +514,26 @@ function updateLUT_stage1(char_number) -- ~3us on average
 			local record_turns_data = emu:read32(record_turns_initial_addr)
 			if (record_turns_data ~= 0) then -- make sure chapter 1 has been finished before loading Session data
 				-- if chapter 1 has not been finished, then we will end up saving session data before we load it, making a new file
-				loadSessionData()
-				console:log("Session data loaded")
+				if (slated_for_UnitsLut_reset == 1) then -- We just soft reset, so handle special cases
+					slated_for_UnitsLut_reset = 0
+					local resumed_chapter = emu:read8(action_data_value_addr)
+					if (resumed_chapter > 0) then -- we resumed the chapter
+						-- Do nothing
+					else -- we restarted the chapter
+						resetUnitsLut()
+						loadSessionData()
+						console:log("Local unit data reset and Session data loaded")
+					end
+				else
+					loadSessionData()
+					console:log("Session data loaded")
+				end
 			end
 			lastMapID = MapID
 		elseif (MapID == 0) then
 			console:log("Game has been reset")
-			resetUnitsLut()
 			re_draw = 1
+			slated_for_UnitsLut_reset = 1
 			lastMapID = MapID
 		else
 			saveSessionData()
