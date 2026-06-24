@@ -18,6 +18,8 @@ You can manually edit this file. Just open it, use ctrl+f to find a character yo
 	* if they're a trainee unit, and they've promoted out of their trainee class, set trainee state to 3
 
 If you wish to pass a save to someone, make sure to give them this file too so that the stat tracker works as intended
+
+If anything beind displayed is messed up, ofted time's it the fault of an old or incorrect session data, and deleting it can often fix the problem
 ----------------------------------------------------
 !!IMPORTANT!! Session Save information !!IMPORTANT!!
 ----------------------------------------------------
@@ -27,22 +29,24 @@ Default Hotkeys:
 	'R' - Display RNs on the Right Side
 	
 	StatTrack:
-	'Period' - moves stat-tracked units right
-	'Comma' - moves stat-tracked units left
+	'Period' - displays more stat-tracked units to the right
+	'Comma' - displays more stat-tracked units to the left
 	'Slash' - changes color
 	'L' - Cycles order of displayed units
 	'H' - Hides or shows stats overlay for on top of screen (0 units to left or right). Whenever the script is run or game reset it will default to showing the overlay
+	'Semicolon' - Toggles between prioritizing units with the most levels (default), and prioritizing units who leveled up most recently
+	'K' - Manually save session data. Mostly useful if you need a template for a game and don't have one lying around, or a mid-chapter save state you're sharing. I would not press this key otherwise 
 
 Binomial Distribution Viewer:
 	- To view the binomial distribution of each stat, use our mouse to left click on the magnifying glass on a displayed unit
-	- If you gave that unit stat boosters, you can subtract a stat booster amount from a graph by left clicking it, and the reverse by right clicking it
+	- If you gave that unit stat boosters, you can subtract a stat booster amount from a graph by left clicking the graph, and the reverse by holding shift and left clicking it
+	  - If for some reason you want to add/subtract 1 instead of a full statbooster amount, hold control as well when clicking the graph
 	- When looking at the binomial distribution, all other hotkeys and functionality pauses, so make sure to left click exit in the bottom left when you're done looking
 	- Displayed next to each graph is top/bot and a percentage. This is the top of bottom percentile of your unit in that stat. Ex. if it says Bot 20%, then there's an 80% chance for this unit to have better stats than yours
 		- If your unit caps a stat, it will not say top/bot, and the percentage is instead the chance that your unit would cap that stat naturally
 	- Known bugs include:
 		- not handling growth rates > 100% correctly (blame math, not me)
 		- not handling pre-promote stat caps correctly if your unit would have capped as a pre-promote, and then got promoted
-		- not having enough numbers in the ref_img.png to show probabilities over 60%
 		- If there is a unit that becomes tracked who gained 0 levels somehow, viewing their binomial distribution will crash the script
 
 Color change Instructions:
