@@ -1014,7 +1014,7 @@ function draw()
 				else
 					wexp_progress = 20 * (unitInfo[indexes[9-i]] / (wexp_promo_levels[rank] + 1))
 				end
-				gui.drawImageRegion("./images/ref_img.png", 0, 401 + (indexes[9-i]-43)*6, 7, 7, width-31+offset - 1, 123 + (i-1)*8) -- symbol
+				gui.drawImageRegion("./images/ref_img.png", 0, 401 + (indexes[9-i]-43)*6, 6, 6, width-31+offset - 1, 123 + (i-1)*8) -- symbol
 				gui.drawImageRegion("./images/ref_img.png", 0, 449 + (rank-1)*6, 7, 6, width-31+offset + 5, 123 + (i-1)*8) -- rank letter
 				gui.drawImageRegion("./images/ref_img.png", 0, 395, 7, 7, width-31+offset + 9, 123 + (i-1)*8) -- progress bar 1
 				gui.drawImageRegion("./images/ref_img.png", 0, 389, 7, 7, width-31+offset + 15, 123 + (i-1)*8) -- progress bar 2
@@ -1096,7 +1096,7 @@ function draw()
 					else
 						wexp_progress = 20 * (unitInfo[indexes[9-i]] / (wexp_promo_levels[rank] + 1))
 					end
-					gui.drawImageRegion("./images/ref_img.png", 0, 401 + (indexes[9-i]-43)*6, 7, 7, width-64+offset - 1, 123 + (i-1)*8) -- symbol
+					gui.drawImageRegion("./images/ref_img.png", 0, 401 + (indexes[9-i]-43)*6, 6, 6, width-64+offset - 1, 123 + (i-1)*8) -- symbol
 					gui.drawImageRegion("./images/ref_img.png", 0, 449 + (rank-1)*6, 7, 6, width-64+offset + 5, 123 + (i-1)*8) -- rank letter
 					gui.drawImageRegion("./images/ref_img.png", 0, 395, 7, 7, width-64+offset + 9, 123 + (i-1)*8) -- progress bar 1
 					gui.drawImageRegion("./images/ref_img.png", 0, 389, 7, 7, width-64+offset + 15, 123 + (i-1)*8) -- progress bar 2
@@ -1179,7 +1179,7 @@ function draw()
 					else
 						wexp_progress = 20 * (unitInfo[indexes[9-i]] / (wexp_promo_levels[rank] + 1))
 					end
-					gui.drawImageRegion("./images/ref_img.png", 0, 401 + (indexes[9-i]-43)*6, 7, 7, width-97+offset - 1, 123 + (i-1)*8) -- symbol
+					gui.drawImageRegion("./images/ref_img.png", 0, 401 + (indexes[9-i]-43)*6, 6, 6, width-97+offset - 1, 123 + (i-1)*8) -- symbol
 					gui.drawImageRegion("./images/ref_img.png", 0, 449 + (rank-1)*6, 7, 6, width-97+offset + 5, 123 + (i-1)*8) -- rank letter
 					gui.drawImageRegion("./images/ref_img.png", 0, 395, 7, 7, width-97+offset + 9, 123 + (i-1)*8) -- progress bar 1
 					gui.drawImageRegion("./images/ref_img.png", 0, 389, 7, 7, width-97+offset + 15, 123 + (i-1)*8) -- progress bar 2
