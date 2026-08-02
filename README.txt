@@ -26,6 +26,8 @@ Commands:
 There are a couple commands you can run in the LUA console that will do things:
 n() : cycles through who you're looking at, which lets you see more characters if more than 3 have leveled up
 t() : toggles printing of current RNG strings (kind of a mess)
+l() : toggles whether the script prioritizes showing units with the most levels (default), vs prioritizing showing units who leveled up most recently
+s() : manually saves session_data if you ever with to do so for some reason
 
 Command change Instructions:
 
