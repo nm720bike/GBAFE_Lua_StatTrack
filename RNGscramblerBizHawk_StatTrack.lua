@@ -33,6 +33,7 @@ local displayed_unit_index = 0
 -- If you want to move the window, adjust this number. 1 would be all the way on the left
 local onTopOffsetX = bufferwidth - 48
 local display_latest = false
+local reset_framecount = 0
 
 
 -- Read consecutive values from the ROM to find a special string (ex/ FIREEMBLEM6.AFEJ01) used to distinguish between games
@@ -78,6 +79,8 @@ print("Current game: "..currentGame)
 
 local UnitsLut = {}
 local CurrentUnits
+local LeveledUnits
+local LatestUnits
 local Cdata
 local DisplayedUnits
 
@@ -86,6 +89,8 @@ function resetUnitsLut()
 	--									[01,    02,    03,    04,    05,    06,    07,    08,    09,   10,    11,    12,    13,    14,    15,    16,    17,   18,    19,    20,   21,     22,    23,    24,    25,     26,      27,      28,      29,      30,       31,      32       33,         34,         35,         36,       37,        38,       39,         40          41         42          43          44         45         46         47          48         49         50]
 	-- b_* = base stat. c_* = current stat. *_g = growth. avg_* = amount +- avg
 	CurrentUnits = {0xbadcafe, 0xbadcafe}
+	LeveledUnits = {0xbadcafe, 0xbadcafe}
+	LatestUnits = {0xbadcafe, 0xbadcafe}
 	DisplayedUnits = {}
 	Cdata = {
 		['lookupKey'] = 0,
@@ -466,10 +471,14 @@ function checkForUserInput()
 	if (userInput.Semicolon and heldDown['Semicolon'] == false) then
 		if (display_latest == false) then
 			display_latest = true
+			re_draw = 1
 			print("Displaying latest level-ups")
+			print(LatestUnits)
 		else
 			display_latest = false
+			re_draw = 1
 			print("Displaying most level-ups")
+			print(LeveledUnits)
 		end
 	end
 	for key, value in pairs(heldDown) do
@@ -545,7 +554,7 @@ function checkForUserInput()
 end
 
 function isDisplayActive()
-	if (emu.framecount() < display_duration) then
+	if (emu.framecount() < display_duration or emu.framecount() < reset_framecount + 60*5) then
 		display_frame_start = 0
 		gui.clearGraphics()
 		return false
@@ -609,6 +618,7 @@ function updateLUT_stage1(char_number) -- ~3us on average
 				if (slated_for_UnitsLut_reset == 1) then -- We just soft reset, so handle special cases
 					slated_for_UnitsLut_reset = 0
 					local resumed_chapter = memory.readbyte(action_data_value_addr)
+					reset_framecount = emu.framecount()
 					if (resumed_chapter > 0) then -- we resumed the chapter
 						-- Do nothing
 					else -- we restarted the chapter
@@ -633,6 +643,7 @@ function updateLUT_stage1(char_number) -- ~3us on average
 			re_draw = 1
 			slated_for_UnitsLut_reset = 1
 			lastMapID = MapID
+			reset_framecount = emu.framecount()
 		else -- We just went to a new chapter. Save the sessions data
 			saveSessionData()
 			print("Session data saved to session_data.csv")
@@ -847,76 +858,63 @@ end
 function updateLUT_stage4() -- ~1.4us on average
 	if (Cdata['lvls_gained'] > 0) then 
 		if (unit_arr[11] > 0) then
-			local i = #CurrentUnits
+			local i = #LatestUnits
 			local inserted = false
+
+			-- Assign array for latest level units -----------------------------------------------
 			while i > 0 do
-				if CurrentUnits[i] == Cdata['lookupKey'] and not(inserted) then
-					if (lvl_gained == 1) then
-						displayed_unit_index = i-1
-						-- print("displayed_unit_index set to "..displayed_unit_index .. "currentUnits = ")
-						-- print(CurrentUnits)
-						lvl_gained = 0
-					end
-					return
-				end
 				if (inserted) then
-					if Cdata['lookupKey'] == CurrentUnits[i] then
-						table.remove(CurrentUnits,i)
+					if Cdata['lookupKey'] == LatestUnits[i] then
+						table.remove(LatestUnits,i)
 						re_draw = 1
 					end
 				else
-					if (display_latest == true) then
-						if (i == #CurrentUnits) then
-							if (lvl_gained == 1) then
-							table.insert(CurrentUnits, i+1, Cdata['lookupKey'])
+					if (i == #LatestUnits) then
+						if (lvl_gained == 1) then
+							table.insert(LatestUnits, i+1, Cdata['lookupKey'])
 							inserted = true
 							re_draw = 1
 							displayed_unit_index = i
 							lvl_gained = 0
-							i = i + 1
-							end
-						end
-					else
-						if (Cdata['lvls_gained'] > UnitsLut[CurrentUnits[i]][33]) then
-							-- print("checkpoint0")
-							-- print(lvl_gained)
-							table.insert(CurrentUnits, i+1, Cdata['lookupKey'])
-							inserted = true
-							re_draw = 1
-							if (lvl_gained == 1) then
-								displayed_unit_index = i
-								lvl_gained = 0
-								-- print("displayed_unit_index set to "..displayed_unit_index .. "currentUnits = ")
-								-- print(CurrentUnits)
-							end
 							i = i + 1
 						end
 					end
 				end
 				i = i - 1;
 			end
-			-- print("checkpoint")
-			if #CurrentUnits == 0 then
-				-- print("checkpoint1")
-				table.insert(CurrentUnits, 1, Cdata['lookupKey'])
-				re_draw = 1
-				if (lvl_gained == 1) then
-					displayed_unit_index = 0
-					lvl_gained = 0
-					-- print("displayed_unit_index set to "..displayed_unit_index .. "currentUnits = ")
-					-- print(CurrentUnits)
+			
+			i = #LeveledUnits
+			inserted = false
+			-- Assign array for highest level units --------------
+			while i > 0 do
+				if LeveledUnits[i] == Cdata['lookupKey'] and not(inserted) then
+					if (lvl_gained == 1) then
+						displayed_unit_index = i-1
+						lvl_gained = 0
+					end
+					return
 				end
-			elseif (not(inserted) and Cdata['lvls_gained'] > 0 and not(contains(CurrentUnits, Cdata['lookupKey']))) then
-				table.insert(CurrentUnits, 1, Cdata['lookupKey'])
-				-- print("checkpoint2")
-				re_draw = 1
-				if (lvl_gained == 1) then
-					displayed_unit_index = 0
-					lvl_gained = 0
-					-- print("displayed_unit_index set to "..displayed_unit_index .. "currentUnits = ")
-					-- print(CurrentUnits)
+				if (inserted) then
+					if Cdata['lookupKey'] == LeveledUnits[i] then
+						table.remove(LeveledUnits,i)
+						re_draw = 1
+					end
+				else
+					if (Cdata['lvls_gained'] > UnitsLut[LeveledUnits[i]][33]) then
+						table.insert(LeveledUnits, i+1, Cdata['lookupKey'])
+						inserted = true
+						re_draw = 1
+						if (lvl_gained == 1) then
+							displayed_unit_index = i
+							lvl_gained = 0
+						end
+						i = i + 1
+					end
 				end
+				i = i - 1;
 			end
+			
+			
 		end
 	end
 end
@@ -947,6 +945,11 @@ function draw()
 		client.SetGameExtraPadding(0, 0, width, 0)
 	end
 	
+	if (display_latest == true) then
+		CurrentUnits = LatestUnits
+	else
+		CurrentUnits = LeveledUnits
+	end
 
 	drawBox(0+offset, 0, width+offset, bufferheight-1, foreground_color, background_color, "emucore")
 	drawLine(15+offset, 0, 15+offset, bufferheight, foreground_color, "emucore") -- vertical line at -98
