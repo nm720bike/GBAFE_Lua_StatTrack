@@ -472,13 +472,9 @@ function checkForUserInput()
 		if (display_latest == false) then
 			display_latest = true
 			re_draw = 1
-			print("Displaying latest level-ups")
-			print(LatestUnits)
 		else
 			display_latest = false
 			re_draw = 1
-			print("Displaying most level-ups")
-			print(LeveledUnits)
 		end
 	end
 	for key, value in pairs(heldDown) do
