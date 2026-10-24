@@ -37,6 +37,10 @@ Default Hotkeys:
 	'Semicolon' - Toggles between prioritizing units with the most levels (default), and prioritizing units who leveled up most recently
 	'K' - Manually save session data. Mostly useful if you need a template for a game and don't have one lying around, or a mid-chapter save state you're sharing. I would not press this key otherwise 
 
+Stat Editor:
+	- To edit the stats of characters in-game, left click on the stat display of that character's stat on the stat tracker
+		- Left clicking the stat of choice will increase it by 1, and holding shift and left clicking will decrease it by 1
+
 Binomial Distribution Viewer:
 	- To view the binomial distribution of each stat, use our mouse to left click on the magnifying glass on a displayed unit
 	- If you gave that unit stat boosters, you can subtract a stat booster amount from a graph by left clicking the graph, and the reverse by holding shift and left clicking it

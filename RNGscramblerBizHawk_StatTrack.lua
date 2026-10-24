@@ -35,7 +35,8 @@ local onTopOffsetX = bufferwidth - 48
 local display_latest = false
 local reset_framecount = 0
 local recalc_order = 0
-
+local unit_stat_adj = {0,0,0}
+-- local unit_stat_adj = {[1] = 0, [2] = 0, [3] = 0}
 
 -- Read consecutive values from the ROM to find a special string (ex/ FIREEMBLEM6.AFEJ01) used to distinguish between games
 for i = 0, 18, 1 do
@@ -537,6 +538,86 @@ function checkForUserInput()
 					end
 				end
 			end
+			-- Section for changing stats
+			if (mouse_input["X"] > -96 and mouse_input["X"] < -64 and num_displayed_units > 2) then -- Far left unit:
+				if (mouse_input["Y"] > 42 and mouse_input["Y"] < 52) then -- lvl
+					if (heldDown['Shift']) then 
+						unit_stat_adj = {DisplayedUnits[3], 0x08, unit_stat_adj[3]-1} 
+						UnitsLut[DisplayedUnits[3]][10] = UnitsLut[DisplayedUnits[3]][10]-1
+						if (UnitsLut[DisplayedUnits[3]][34] == 0) then UnitsLut[DisplayedUnits[3]][25] = UnitsLut[DisplayedUnits[3]][25]-1 end
+					else 
+						unit_stat_adj = {DisplayedUnits[3], 0x08, unit_stat_adj[3]+1} 
+						UnitsLut[DisplayedUnits[3]][10] = UnitsLut[DisplayedUnits[3]][10]+1
+						if (UnitsLut[DisplayedUnits[3]][34] == 0) then UnitsLut[DisplayedUnits[3]][25] = UnitsLut[DisplayedUnits[3]][25]+1 end
+					end
+				elseif (mouse_input["Y"] > 52 and mouse_input["Y"] < 62) then -- hp
+					if (heldDown['Shift']) then unit_stat_adj = {DisplayedUnits[3], 0x12, unit_stat_adj[3]-1} else unit_stat_adj = {DisplayedUnits[3], 0x12, unit_stat_adj[3]+1} end
+				elseif (mouse_input["Y"] > 62 and mouse_input["Y"] < 72) then -- str
+					if (heldDown['Shift']) then unit_stat_adj = {DisplayedUnits[3], 0x14, unit_stat_adj[3]-1} else unit_stat_adj = {DisplayedUnits[3], 0x14, unit_stat_adj[3]+1} end
+				elseif (mouse_input["Y"] > 72 and mouse_input["Y"] < 82) then -- skl
+					if (heldDown['Shift']) then unit_stat_adj = {DisplayedUnits[3], 0x15, unit_stat_adj[3]-1} else unit_stat_adj = {DisplayedUnits[3], 0x15, unit_stat_adj[3]+1} end
+				elseif (mouse_input["Y"] > 82 and mouse_input["Y"] < 92) then -- spd
+					if (heldDown['Shift']) then unit_stat_adj = {DisplayedUnits[3], 0x16, unit_stat_adj[3]-1} else unit_stat_adj = {DisplayedUnits[3], 0x16, unit_stat_adj[3]+1} end
+				elseif (mouse_input["Y"] > 92 and mouse_input["Y"] < 102) then -- lck
+					if (heldDown['Shift']) then unit_stat_adj = {DisplayedUnits[3], 0x19, unit_stat_adj[3]-1} else unit_stat_adj = {DisplayedUnits[3], 0x19, unit_stat_adj[3]+1} end
+				elseif (mouse_input["Y"] > 102 and mouse_input["Y"] < 112) then -- def
+					if (heldDown['Shift']) then unit_stat_adj = {DisplayedUnits[3], 0x17, unit_stat_adj[3]-1} else unit_stat_adj = {DisplayedUnits[3], 0x17, unit_stat_adj[3]+1} end
+				elseif (mouse_input["Y"] > 112 and mouse_input["Y"] < 122) then -- res
+					if (heldDown['Shift']) then unit_stat_adj = {DisplayedUnits[3], 0x18, unit_stat_adj[3]-1} else unit_stat_adj = {DisplayedUnits[3], 0x18, unit_stat_adj[3]+1} end
+				end
+			elseif (mouse_input["X"] > -64 and mouse_input["X"] < -32 and num_displayed_units > 1) then -- middle unit:
+				if (mouse_input["Y"] > 42 and mouse_input["Y"] < 52) then -- lvl
+					if (heldDown['Shift']) then 
+						unit_stat_adj = {DisplayedUnits[2], 0x08, unit_stat_adj[3]-1} 
+						UnitsLut[DisplayedUnits[2]][10] = UnitsLut[DisplayedUnits[2]][10]-1
+						if (UnitsLut[DisplayedUnits[2]][34] == 0) then UnitsLut[DisplayedUnits[2]][25] = UnitsLut[DisplayedUnits[2]][25]-1 end
+					else 
+						unit_stat_adj = {DisplayedUnits[2], 0x08, unit_stat_adj[3]+1} 
+						UnitsLut[DisplayedUnits[2]][10] = UnitsLut[DisplayedUnits[2]][10]+1
+						if (UnitsLut[DisplayedUnits[2]][34] == 0) then UnitsLut[DisplayedUnits[2]][25] = UnitsLut[DisplayedUnits[2]][25]+1 end
+					end
+				elseif (mouse_input["Y"] > 52 and mouse_input["Y"] < 62) then -- hp
+					if (heldDown['Shift']) then unit_stat_adj = {DisplayedUnits[2], 0x12, unit_stat_adj[3]-1} else unit_stat_adj = {DisplayedUnits[2], 0x12, unit_stat_adj[3]+1} end
+				elseif (mouse_input["Y"] > 62 and mouse_input["Y"] < 72) then -- str
+					if (heldDown['Shift']) then unit_stat_adj = {DisplayedUnits[2], 0x14, unit_stat_adj[3]-1} else unit_stat_adj = {DisplayedUnits[2], 0x14, unit_stat_adj[3]+1} end
+				elseif (mouse_input["Y"] > 72 and mouse_input["Y"] < 82) then -- skl
+					if (heldDown['Shift']) then unit_stat_adj = {DisplayedUnits[2], 0x15, unit_stat_adj[3]-1} else unit_stat_adj = {DisplayedUnits[2], 0x15, unit_stat_adj[3]+1} end
+				elseif (mouse_input["Y"] > 82 and mouse_input["Y"] < 92) then -- spd
+					if (heldDown['Shift']) then unit_stat_adj = {DisplayedUnits[2], 0x16, unit_stat_adj[3]-1} else unit_stat_adj = {DisplayedUnits[2], 0x16, unit_stat_adj[3]+1} end
+				elseif (mouse_input["Y"] > 92 and mouse_input["Y"] < 102) then -- lck
+					if (heldDown['Shift']) then unit_stat_adj = {DisplayedUnits[2], 0x19, unit_stat_adj[3]-1} else unit_stat_adj = {DisplayedUnits[2], 0x19, unit_stat_adj[3]+1} end
+				elseif (mouse_input["Y"] > 102 and mouse_input["Y"] < 112) then -- def
+					if (heldDown['Shift']) then unit_stat_adj = {DisplayedUnits[2], 0x17, unit_stat_adj[3]-1} else unit_stat_adj = {DisplayedUnits[2], 0x17, unit_stat_adj[3]+1} end
+				elseif (mouse_input["Y"] > 112 and mouse_input["Y"] < 122) then -- res
+					if (heldDown['Shift']) then unit_stat_adj = {DisplayedUnits[2], 0x18, unit_stat_adj[3]-1} else unit_stat_adj = {DisplayedUnits[2], 0x18, unit_stat_adj[3]+1} end
+				end
+			elseif (mouse_input["X"] > -32 and mouse_input["X"] < 0 and num_displayed_units > 0) then -- middle unit:
+				if (mouse_input["Y"] > 42 and mouse_input["Y"] < 52) then -- lvl
+					if (heldDown['Shift']) then 
+						unit_stat_adj = {DisplayedUnits[1], 0x08, unit_stat_adj[3]-1} 
+						UnitsLut[DisplayedUnits[1]][10] = UnitsLut[DisplayedUnits[1]][10]-1
+						if (UnitsLut[DisplayedUnits[1]][34] == 0) then UnitsLut[DisplayedUnits[1]][25] = UnitsLut[DisplayedUnits[1]][25]-1 end
+					else 
+						unit_stat_adj = {DisplayedUnits[1], 0x08, unit_stat_adj[3]+1} 
+						UnitsLut[DisplayedUnits[1]][10] = UnitsLut[DisplayedUnits[1]][10]+1
+						if (UnitsLut[DisplayedUnits[1]][34] == 0) then UnitsLut[DisplayedUnits[1]][25] = UnitsLut[DisplayedUnits[1]][25]+1 end
+					end
+				elseif (mouse_input["Y"] > 52 and mouse_input["Y"] < 62) then -- hp
+					if (heldDown['Shift']) then unit_stat_adj = {DisplayedUnits[1], 0x12, unit_stat_adj[3]-1} else unit_stat_adj = {DisplayedUnits[1], 0x12, unit_stat_adj[3]+1} end
+				elseif (mouse_input["Y"] > 62 and mouse_input["Y"] < 72) then -- str
+					if (heldDown['Shift']) then unit_stat_adj = {DisplayedUnits[1], 0x14, unit_stat_adj[3]-1} else unit_stat_adj = {DisplayedUnits[1], 0x14, unit_stat_adj[3]+1} end
+				elseif (mouse_input["Y"] > 72 and mouse_input["Y"] < 82) then -- skl
+					if (heldDown['Shift']) then unit_stat_adj = {DisplayedUnits[1], 0x15, unit_stat_adj[3]-1} else unit_stat_adj = {DisplayedUnits[1], 0x15, unit_stat_adj[3]+1} end
+				elseif (mouse_input["Y"] > 82 and mouse_input["Y"] < 92) then -- spd
+					if (heldDown['Shift']) then unit_stat_adj = {DisplayedUnits[1], 0x16, unit_stat_adj[3]-1} else unit_stat_adj = {DisplayedUnits[1], 0x16, unit_stat_adj[3]+1} end
+				elseif (mouse_input["Y"] > 92 and mouse_input["Y"] < 102) then -- lck
+					if (heldDown['Shift']) then unit_stat_adj = {DisplayedUnits[1], 0x19, unit_stat_adj[3]-1} else unit_stat_adj = {DisplayedUnits[1], 0x19, unit_stat_adj[3]+1} end
+				elseif (mouse_input["Y"] > 102 and mouse_input["Y"] < 112) then -- def
+					if (heldDown['Shift']) then unit_stat_adj = {DisplayedUnits[1], 0x17, unit_stat_adj[3]-1} else unit_stat_adj = {DisplayedUnits[1], 0x17, unit_stat_adj[3]+1} end
+				elseif (mouse_input["Y"] > 112 and mouse_input["Y"] < 122) then -- res
+					if (heldDown['Shift']) then unit_stat_adj = {DisplayedUnits[1], 0x18, unit_stat_adj[3]-1} else unit_stat_adj = {DisplayedUnits[1], 0x18, unit_stat_adj[3]+1} end
+				end
+			end
 		else
 			if (mouse_input["Y"] < bufferheight and mouse_input["Y"] > bufferheight-11) then
 				if (mouse_input["X"] < width + 16+18+bufferwidth) then 
@@ -629,6 +710,171 @@ function checkForUserInput()
 					end
 				end
 			end
+
+			-- Section for changing stats
+			if (num_displayed_units == -3) then
+				if (mouse_input["X"] > bufferwidth+15 and mouse_input["X"] < bufferwidth+15+32) then -- Far left unit:
+					if (mouse_input["Y"] > 42 and mouse_input["Y"] < 52) then -- lvl
+						if (heldDown['Shift']) then 
+							unit_stat_adj = {DisplayedUnits[3], 0x08, unit_stat_adj[3]-1} 
+							UnitsLut[DisplayedUnits[3]][10] = UnitsLut[DisplayedUnits[3]][10]-1
+							if (UnitsLut[DisplayedUnits[3]][34] == 0) then UnitsLut[DisplayedUnits[3]][25] = UnitsLut[DisplayedUnits[3]][25]-1 end
+						else 
+							unit_stat_adj = {DisplayedUnits[3], 0x08, unit_stat_adj[3]+1} 
+							UnitsLut[DisplayedUnits[3]][10] = UnitsLut[DisplayedUnits[3]][10]+1
+							if (UnitsLut[DisplayedUnits[3]][34] == 0) then UnitsLut[DisplayedUnits[3]][25] = UnitsLut[DisplayedUnits[3]][25]+1 end
+						end
+					elseif (mouse_input["Y"] > 52 and mouse_input["Y"] < 62) then -- hp
+						if (heldDown['Shift']) then unit_stat_adj = {DisplayedUnits[3], 0x12, unit_stat_adj[3]-1} else unit_stat_adj = {DisplayedUnits[3], 0x12, unit_stat_adj[3]+1} end
+					elseif (mouse_input["Y"] > 62 and mouse_input["Y"] < 72) then -- str
+						if (heldDown['Shift']) then unit_stat_adj = {DisplayedUnits[3], 0x14, unit_stat_adj[3]-1} else unit_stat_adj = {DisplayedUnits[3], 0x14, unit_stat_adj[3]+1} end
+					elseif (mouse_input["Y"] > 72 and mouse_input["Y"] < 82) then -- skl
+						if (heldDown['Shift']) then unit_stat_adj = {DisplayedUnits[3], 0x15, unit_stat_adj[3]-1} else unit_stat_adj = {DisplayedUnits[3], 0x15, unit_stat_adj[3]+1} end
+					elseif (mouse_input["Y"] > 82 and mouse_input["Y"] < 92) then -- spd
+						if (heldDown['Shift']) then unit_stat_adj = {DisplayedUnits[3], 0x16, unit_stat_adj[3]-1} else unit_stat_adj = {DisplayedUnits[3], 0x16, unit_stat_adj[3]+1} end
+					elseif (mouse_input["Y"] > 92 and mouse_input["Y"] < 102) then -- lck
+						if (heldDown['Shift']) then unit_stat_adj = {DisplayedUnits[3], 0x19, unit_stat_adj[3]-1} else unit_stat_adj = {DisplayedUnits[3], 0x19, unit_stat_adj[3]+1} end
+					elseif (mouse_input["Y"] > 102 and mouse_input["Y"] < 112) then -- def
+						if (heldDown['Shift']) then unit_stat_adj = {DisplayedUnits[3], 0x17, unit_stat_adj[3]-1} else unit_stat_adj = {DisplayedUnits[3], 0x17, unit_stat_adj[3]+1} end
+					elseif (mouse_input["Y"] > 112 and mouse_input["Y"] < 122) then -- res
+						if (heldDown['Shift']) then unit_stat_adj = {DisplayedUnits[3], 0x18, unit_stat_adj[3]-1} else unit_stat_adj = {DisplayedUnits[3], 0x18, unit_stat_adj[3]+1} end
+					end
+				elseif (mouse_input["X"] > bufferwidth+15+32 and mouse_input["X"] < bufferwidth+15+64) then -- middle unit:
+					if (mouse_input["Y"] > 42 and mouse_input["Y"] < 52) then -- lvl
+						if (heldDown['Shift']) then 
+							unit_stat_adj = {DisplayedUnits[2], 0x08, unit_stat_adj[3]-1} 
+							UnitsLut[DisplayedUnits[2]][10] = UnitsLut[DisplayedUnits[2]][10]-1
+							if (UnitsLut[DisplayedUnits[2]][34] == 0) then UnitsLut[DisplayedUnits[2]][25] = UnitsLut[DisplayedUnits[2]][25]-1 end
+						else 
+							unit_stat_adj = {DisplayedUnits[2], 0x08, unit_stat_adj[3]+1} 
+							UnitsLut[DisplayedUnits[2]][10] = UnitsLut[DisplayedUnits[2]][10]+1
+							if (UnitsLut[DisplayedUnits[2]][34] == 0) then UnitsLut[DisplayedUnits[2]][25] = UnitsLut[DisplayedUnits[2]][25]+1 end
+						end
+					elseif (mouse_input["Y"] > 52 and mouse_input["Y"] < 62) then -- hp
+						if (heldDown['Shift']) then unit_stat_adj = {DisplayedUnits[2], 0x12, unit_stat_adj[3]-1} else unit_stat_adj = {DisplayedUnits[2], 0x12, unit_stat_adj[3]+1} end
+					elseif (mouse_input["Y"] > 62 and mouse_input["Y"] < 72) then -- str
+						if (heldDown['Shift']) then unit_stat_adj = {DisplayedUnits[2], 0x14, unit_stat_adj[3]-1} else unit_stat_adj = {DisplayedUnits[2], 0x14, unit_stat_adj[3]+1} end
+					elseif (mouse_input["Y"] > 72 and mouse_input["Y"] < 82) then -- skl
+						if (heldDown['Shift']) then unit_stat_adj = {DisplayedUnits[2], 0x15, unit_stat_adj[3]-1} else unit_stat_adj = {DisplayedUnits[2], 0x15, unit_stat_adj[3]+1} end
+					elseif (mouse_input["Y"] > 82 and mouse_input["Y"] < 92) then -- spd
+						if (heldDown['Shift']) then unit_stat_adj = {DisplayedUnits[2], 0x16, unit_stat_adj[3]-1} else unit_stat_adj = {DisplayedUnits[2], 0x16, unit_stat_adj[3]+1} end
+					elseif (mouse_input["Y"] > 92 and mouse_input["Y"] < 102) then -- lck
+						if (heldDown['Shift']) then unit_stat_adj = {DisplayedUnits[2], 0x19, unit_stat_adj[3]-1} else unit_stat_adj = {DisplayedUnits[2], 0x19, unit_stat_adj[3]+1} end
+					elseif (mouse_input["Y"] > 102 and mouse_input["Y"] < 112) then -- def
+						if (heldDown['Shift']) then unit_stat_adj = {DisplayedUnits[2], 0x17, unit_stat_adj[3]-1} else unit_stat_adj = {DisplayedUnits[2], 0x17, unit_stat_adj[3]+1} end
+					elseif (mouse_input["Y"] > 112 and mouse_input["Y"] < 122) then -- res
+						if (heldDown['Shift']) then unit_stat_adj = {DisplayedUnits[2], 0x18, unit_stat_adj[3]-1} else unit_stat_adj = {DisplayedUnits[2], 0x18, unit_stat_adj[3]+1} end
+					end
+				elseif (mouse_input["X"] > bufferwidth+15+64 and mouse_input["X"] < bufferwidth+15+96) then -- last unit:
+					if (mouse_input["Y"] > 42 and mouse_input["Y"] < 52) then -- lvl
+						if (heldDown['Shift']) then 
+							unit_stat_adj = {DisplayedUnits[1], 0x08, unit_stat_adj[3]-1} 
+							UnitsLut[DisplayedUnits[1]][10] = UnitsLut[DisplayedUnits[1]][10]-1
+							if (UnitsLut[DisplayedUnits[1]][34] == 0) then UnitsLut[DisplayedUnits[1]][25] = UnitsLut[DisplayedUnits[1]][25]-1 end
+						else 
+							unit_stat_adj = {DisplayedUnits[1], 0x08, unit_stat_adj[3]+1} 
+							UnitsLut[DisplayedUnits[1]][10] = UnitsLut[DisplayedUnits[1]][10]+1
+							if (UnitsLut[DisplayedUnits[1]][34] == 0) then UnitsLut[DisplayedUnits[1]][25] = UnitsLut[DisplayedUnits[1]][25]+1 end
+						end
+					elseif (mouse_input["Y"] > 52 and mouse_input["Y"] < 62) then -- hp
+						if (heldDown['Shift']) then unit_stat_adj = {DisplayedUnits[1], 0x12, unit_stat_adj[3]-1} else unit_stat_adj = {DisplayedUnits[1], 0x12, unit_stat_adj[3]+1} end
+					elseif (mouse_input["Y"] > 62 and mouse_input["Y"] < 72) then -- str
+						if (heldDown['Shift']) then unit_stat_adj = {DisplayedUnits[1], 0x14, unit_stat_adj[3]-1} else unit_stat_adj = {DisplayedUnits[1], 0x14, unit_stat_adj[3]+1} end
+					elseif (mouse_input["Y"] > 72 and mouse_input["Y"] < 82) then -- skl
+						if (heldDown['Shift']) then unit_stat_adj = {DisplayedUnits[1], 0x15, unit_stat_adj[3]-1} else unit_stat_adj = {DisplayedUnits[1], 0x15, unit_stat_adj[3]+1} end
+					elseif (mouse_input["Y"] > 82 and mouse_input["Y"] < 92) then -- spd
+						if (heldDown['Shift']) then unit_stat_adj = {DisplayedUnits[1], 0x16, unit_stat_adj[3]-1} else unit_stat_adj = {DisplayedUnits[1], 0x16, unit_stat_adj[3]+1} end
+					elseif (mouse_input["Y"] > 92 and mouse_input["Y"] < 102) then -- lck
+						if (heldDown['Shift']) then unit_stat_adj = {DisplayedUnits[1], 0x19, unit_stat_adj[3]-1} else unit_stat_adj = {DisplayedUnits[1], 0x19, unit_stat_adj[3]+1} end
+					elseif (mouse_input["Y"] > 102 and mouse_input["Y"] < 112) then -- def
+						if (heldDown['Shift']) then unit_stat_adj = {DisplayedUnits[1], 0x17, unit_stat_adj[3]-1} else unit_stat_adj = {DisplayedUnits[1], 0x17, unit_stat_adj[3]+1} end
+					elseif (mouse_input["Y"] > 112 and mouse_input["Y"] < 122) then -- res
+						if (heldDown['Shift']) then unit_stat_adj = {DisplayedUnits[1], 0x18, unit_stat_adj[3]-1} else unit_stat_adj = {DisplayedUnits[1], 0x18, unit_stat_adj[3]+1} end
+					end
+				end
+			elseif (num_displayed_units == -2) then
+				if (mouse_input["X"] > bufferwidth+15 and mouse_input["X"] < bufferwidth+15+32) then -- Far left unit:
+					if (mouse_input["Y"] > 42 and mouse_input["Y"] < 52) then -- lvl
+						if (heldDown['Shift']) then 
+							unit_stat_adj = {DisplayedUnits[2], 0x08, unit_stat_adj[3]-1} 
+							UnitsLut[DisplayedUnits[2]][10] = UnitsLut[DisplayedUnits[2]][10]-1
+							if (UnitsLut[DisplayedUnits[2]][34] == 0) then UnitsLut[DisplayedUnits[2]][25] = UnitsLut[DisplayedUnits[2]][25]-1 end
+						else 
+							unit_stat_adj = {DisplayedUnits[2], 0x08, unit_stat_adj[3]+1} 
+							UnitsLut[DisplayedUnits[2]][10] = UnitsLut[DisplayedUnits[2]][10]+1
+							if (UnitsLut[DisplayedUnits[2]][34] == 0) then UnitsLut[DisplayedUnits[2]][25] = UnitsLut[DisplayedUnits[2]][25]+1 end
+						end
+					elseif (mouse_input["Y"] > 52 and mouse_input["Y"] < 62) then -- hp
+						if (heldDown['Shift']) then unit_stat_adj = {DisplayedUnits[2], 0x12, unit_stat_adj[3]-1} else unit_stat_adj = {DisplayedUnits[2], 0x12, unit_stat_adj[3]+1} end
+					elseif (mouse_input["Y"] > 62 and mouse_input["Y"] < 72) then -- str
+						if (heldDown['Shift']) then unit_stat_adj = {DisplayedUnits[2], 0x14, unit_stat_adj[3]-1} else unit_stat_adj = {DisplayedUnits[2], 0x14, unit_stat_adj[3]+1} end
+					elseif (mouse_input["Y"] > 72 and mouse_input["Y"] < 82) then -- skl
+						if (heldDown['Shift']) then unit_stat_adj = {DisplayedUnits[2], 0x15, unit_stat_adj[3]-1} else unit_stat_adj = {DisplayedUnits[2], 0x15, unit_stat_adj[3]+1} end
+					elseif (mouse_input["Y"] > 82 and mouse_input["Y"] < 92) then -- spd
+						if (heldDown['Shift']) then unit_stat_adj = {DisplayedUnits[2], 0x16, unit_stat_adj[3]-1} else unit_stat_adj = {DisplayedUnits[2], 0x16, unit_stat_adj[3]+1} end
+					elseif (mouse_input["Y"] > 92 and mouse_input["Y"] < 102) then -- lck
+						if (heldDown['Shift']) then unit_stat_adj = {DisplayedUnits[2], 0x19, unit_stat_adj[3]-1} else unit_stat_adj = {DisplayedUnits[2], 0x19, unit_stat_adj[3]+1} end
+					elseif (mouse_input["Y"] > 102 and mouse_input["Y"] < 112) then -- def
+						if (heldDown['Shift']) then unit_stat_adj = {DisplayedUnits[2], 0x17, unit_stat_adj[3]-1} else unit_stat_adj = {DisplayedUnits[2], 0x17, unit_stat_adj[3]+1} end
+					elseif (mouse_input["Y"] > 112 and mouse_input["Y"] < 122) then -- res
+						if (heldDown['Shift']) then unit_stat_adj = {DisplayedUnits[2], 0x18, unit_stat_adj[3]-1} else unit_stat_adj = {DisplayedUnits[2], 0x18, unit_stat_adj[3]+1} end
+					end
+				elseif (mouse_input["X"] > bufferwidth+15+32 and mouse_input["X"] < bufferwidth+15+64) then -- middle unit:
+					if (mouse_input["Y"] > 42 and mouse_input["Y"] < 52) then -- lvl
+						if (heldDown['Shift']) then 
+							unit_stat_adj = {DisplayedUnits[1], 0x08, unit_stat_adj[3]-1} 
+							UnitsLut[DisplayedUnits[1]][10] = UnitsLut[DisplayedUnits[1]][10]-1
+							if (UnitsLut[DisplayedUnits[1]][34] == 0) then UnitsLut[DisplayedUnits[1]][25] = UnitsLut[DisplayedUnits[1]][25]-1 end
+						else 
+							unit_stat_adj = {DisplayedUnits[1], 0x08, unit_stat_adj[3]+1} 
+							UnitsLut[DisplayedUnits[1]][10] = UnitsLut[DisplayedUnits[1]][10]+1
+							if (UnitsLut[DisplayedUnits[1]][34] == 0) then UnitsLut[DisplayedUnits[1]][25] = UnitsLut[DisplayedUnits[1]][25]+1 end
+						end
+					elseif (mouse_input["Y"] > 52 and mouse_input["Y"] < 62) then -- hp
+						if (heldDown['Shift']) then unit_stat_adj = {DisplayedUnits[1], 0x12, unit_stat_adj[3]-1} else unit_stat_adj = {DisplayedUnits[1], 0x12, unit_stat_adj[3]+1} end
+					elseif (mouse_input["Y"] > 62 and mouse_input["Y"] < 72) then -- str
+						if (heldDown['Shift']) then unit_stat_adj = {DisplayedUnits[1], 0x14, unit_stat_adj[3]-1} else unit_stat_adj = {DisplayedUnits[1], 0x14, unit_stat_adj[3]+1} end
+					elseif (mouse_input["Y"] > 72 and mouse_input["Y"] < 82) then -- skl
+						if (heldDown['Shift']) then unit_stat_adj = {DisplayedUnits[1], 0x15, unit_stat_adj[3]-1} else unit_stat_adj = {DisplayedUnits[1], 0x15, unit_stat_adj[3]+1} end
+					elseif (mouse_input["Y"] > 82 and mouse_input["Y"] < 92) then -- spd
+						if (heldDown['Shift']) then unit_stat_adj = {DisplayedUnits[1], 0x16, unit_stat_adj[3]-1} else unit_stat_adj = {DisplayedUnits[1], 0x16, unit_stat_adj[3]+1} end
+					elseif (mouse_input["Y"] > 92 and mouse_input["Y"] < 102) then -- lck
+						if (heldDown['Shift']) then unit_stat_adj = {DisplayedUnits[1], 0x19, unit_stat_adj[3]-1} else unit_stat_adj = {DisplayedUnits[1], 0x19, unit_stat_adj[3]+1} end
+					elseif (mouse_input["Y"] > 102 and mouse_input["Y"] < 112) then -- def
+						if (heldDown['Shift']) then unit_stat_adj = {DisplayedUnits[1], 0x17, unit_stat_adj[3]-1} else unit_stat_adj = {DisplayedUnits[1], 0x17, unit_stat_adj[3]+1} end
+					elseif (mouse_input["Y"] > 112 and mouse_input["Y"] < 122) then -- res
+						if (heldDown['Shift']) then unit_stat_adj = {DisplayedUnits[1], 0x18, unit_stat_adj[3]-1} else unit_stat_adj = {DisplayedUnits[1], 0x18, unit_stat_adj[3]+1} end
+					end
+				end
+			elseif (num_displayed_units == -1) then
+				if (mouse_input["X"] > bufferwidth+15 and mouse_input["X"] < bufferwidth+15+32) then -- Far left unit:
+					if (mouse_input["Y"] > 42 and mouse_input["Y"] < 52) then -- lvl
+						if (heldDown['Shift']) then 
+							unit_stat_adj = {DisplayedUnits[1], 0x08, unit_stat_adj[3]-1} 
+							UnitsLut[DisplayedUnits[1]][10] = UnitsLut[DisplayedUnits[1]][10]-1
+							if (UnitsLut[DisplayedUnits[1]][34] == 0) then UnitsLut[DisplayedUnits[1]][25] = UnitsLut[DisplayedUnits[1]][25]-1 end
+						else 
+							unit_stat_adj = {DisplayedUnits[1], 0x08, unit_stat_adj[3]+1} 
+							UnitsLut[DisplayedUnits[1]][10] = UnitsLut[DisplayedUnits[1]][10]+1
+							if (UnitsLut[DisplayedUnits[1]][34] == 0) then UnitsLut[DisplayedUnits[1]][25] = UnitsLut[DisplayedUnits[1]][25]+1 end
+						end
+					elseif (mouse_input["Y"] > 52 and mouse_input["Y"] < 62) then -- hp
+						if (heldDown['Shift']) then unit_stat_adj = {DisplayedUnits[1], 0x12, unit_stat_adj[3]-1} else unit_stat_adj = {DisplayedUnits[1], 0x12, unit_stat_adj[3]+1} end
+					elseif (mouse_input["Y"] > 62 and mouse_input["Y"] < 72) then -- str
+						if (heldDown['Shift']) then unit_stat_adj = {DisplayedUnits[1], 0x14, unit_stat_adj[3]-1} else unit_stat_adj = {DisplayedUnits[1], 0x14, unit_stat_adj[3]+1} end
+					elseif (mouse_input["Y"] > 72 and mouse_input["Y"] < 82) then -- skl
+						if (heldDown['Shift']) then unit_stat_adj = {DisplayedUnits[1], 0x15, unit_stat_adj[3]-1} else unit_stat_adj = {DisplayedUnits[1], 0x15, unit_stat_adj[3]+1} end
+					elseif (mouse_input["Y"] > 82 and mouse_input["Y"] < 92) then -- spd
+						if (heldDown['Shift']) then unit_stat_adj = {DisplayedUnits[1], 0x16, unit_stat_adj[3]-1} else unit_stat_adj = {DisplayedUnits[1], 0x16, unit_stat_adj[3]+1} end
+					elseif (mouse_input["Y"] > 92 and mouse_input["Y"] < 102) then -- lck
+						if (heldDown['Shift']) then unit_stat_adj = {DisplayedUnits[1], 0x19, unit_stat_adj[3]-1} else unit_stat_adj = {DisplayedUnits[1], 0x19, unit_stat_adj[3]+1} end
+					elseif (mouse_input["Y"] > 102 and mouse_input["Y"] < 112) then -- def
+						if (heldDown['Shift']) then unit_stat_adj = {DisplayedUnits[1], 0x17, unit_stat_adj[3]-1} else unit_stat_adj = {DisplayedUnits[1], 0x17, unit_stat_adj[3]+1} end
+					elseif (mouse_input["Y"] > 112 and mouse_input["Y"] < 122) then -- res
+						if (heldDown['Shift']) then unit_stat_adj = {DisplayedUnits[1], 0x18, unit_stat_adj[3]-1} else unit_stat_adj = {DisplayedUnits[1], 0x18, unit_stat_adj[3]+1} end
+					end
+				end
+			end
 		end
 	end
 	if (mouse_input["Left"]) then mouseHeldDown["Left"] = true else mouseHeldDown["Left"] = false end
@@ -689,6 +935,12 @@ local slated_for_UnitsLut_reset = 0
 function updateLUT_stage1(char_number) -- ~3us on average
 	addr = baseAddress + (char_number*0x48)
 	local Rom_unit = memory.read_u32_le(addr, "System Bus")
+	if Rom_unit == unit_stat_adj[1] and unit_stat_adj[1] ~= 0 then
+		local stat = memory.read_u8(addr+unit_stat_adj[2])
+		memory.write_u8(addr+unit_stat_adj[2], stat + unit_stat_adj[3])
+		unit_stat_adj = {0,0,0}
+		re_draw = 1
+	end
 	Cdata['lookupKey'] = Rom_unit
 	unit_arr = UnitsLut[Cdata['lookupKey']]
 	local MapID = memory.readbyte(map_id_addr)
@@ -1040,6 +1292,9 @@ function draw()
 	end
 
 	drawBox(0+offset, 0, width+offset, bufferheight-1, foreground_color, background_color, "emucore")
+	drawBox(1+offset, 1, offset+14, 41, "yellow", "black", "emucore")
+	drawLine(1+offset, 1, offset+14, 41, "yellow", "emucore")
+	drawLine(1+offset, 41, offset+14, 1, "yellow", "emucore")
 	drawLine(15+offset, 0, 15+offset, bufferheight, foreground_color, "emucore") -- vertical line at -98
 	
 	drawLine(0+offset, 42, width+offset, 42, foreground_color, "emucore") -- horizontal line at 42
